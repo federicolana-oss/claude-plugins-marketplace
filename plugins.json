@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "plugins": [
+    {
+      "id": "financemp-dashboard",
+      "name": "FinanceMP Dashboard",
+      "description": "Dashboard de métricas TPV, VC y Take Rate para acquiring",
+      "version": "1.0.0",
+      "author": "federicolana-oss",
+      "url": "https://github.com/federicolana-oss/claude-plugins-marketplace"
+    },
+    {
+      "id": "sql-helper",
+      "name": "SQL Helper",
+      "description": "Asistente para generar queries SQL sobre datasets de finanzas",
+      "version": "1.0.0",
+      "author": "federicolana-oss",
+      "url": "https://github.com/federicolana-oss/claude-plugins-marketplace"
+    },
+    {
+      "id": "data-export",
+      "name": "Data Export",
+      "description": "Exporta resultados de análisis a CSV o Excel",
+      "version": "1.0.0",
+      "author": "federicolana-oss",
+      "url": "https://github.com/federicolana-oss/claude-plugins-marketplace"
+    }
+  ]
+}
