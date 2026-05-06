@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1400">
+<title>OP P&L vs Plan · Online Payments</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F5F5F5;--s0:#fff;--s2:#F0F0F0;--s3:#E8E8E8;--br:#E4E4E4;
+  --tx:#1A1A1A;--t2:#444;--t3:#888;
+  --y:#FFDB00;--navy:#1a237e;--green:#00A650;--red:#E53935;
+  --gh:#C7C7C7;--gp:#E8E8E8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{font-family:'Inter',sans-serif;font-size:12.5px;background:var(--bg);color:var(--tx)}
+body{padding-top:90px;padding-bottom:46px;min-height:100vh}
+
+/* TOP BAR */
+.topbar{position:fixed;top:0;left:0;right:0;height:46px;background:#1A1A1A;border-bottom:3px solid var(--y);display:flex;align-items:center;padding:0 16px;z-index:100}
+.logo{width:26px;height:22px;background:var(--y);color:#000;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;border-radius:3px;margin-right:10px}
+.title{color:#fff;font-weight:700;font-size:14px;letter-spacing:.3px}
+.subtitle{color:#888;font-size:10.5px;margin-left:10px}
+.topbar .right{margin-left:auto;color:#888;font-size:10px}
+.topbar .right b{color:#fff}
+
+/* FILTER BAR */
+.filterbar{position:fixed;top:46px;left:0;right:0;height:44px;background:#fff;border-bottom:1px solid var(--br);display:flex;align-items:center;padding:0 16px;gap:6px;z-index:99;overflow-x:auto;white-space:nowrap}
+.fbtn{background:#fff;border:1.5px solid var(--br);padding:5px 9px;font:700 10px 'Inter';letter-spacing:.5px;border-radius:4px;cursor:pointer;color:var(--t2);font-family:'Inter',sans-serif}
+.fbtn.on-site{background:var(--s3);color:var(--tx);border-color:var(--s3)}
+.fbtn.on-y{background:var(--y);color:#000;border-color:var(--y)}
+.fbtn:hover{border-color:#999}
+.fsep{width:1px;height:18px;background:var(--br);margin:0 4px;flex-shrink:0}
+select.fbtn{-webkit-appearance:none;appearance:none;padding-right:20px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 5'><path d='M0 0l4 5 4-5z' fill='%23888'/></svg>");background-repeat:no-repeat;background-position:right 6px center;background-size:7px}
+.fbtn-more{background:#1A1A1A;color:var(--y);border-color:#1A1A1A}
+.fbtn-more.on{background:var(--y);color:#000;border-color:var(--y)}
+.adv-active{display:inline-block;background:var(--y);color:#000;border-radius:10px;padding:1px 6px;font:700 9px 'Inter';margin-left:4px}
+
+/* ADV DRAWER */
+.adv-drawer{position:fixed;top:90px;left:0;right:0;background:#fff;border-bottom:1px solid var(--br);padding:14px 16px;display:none;z-index:98;box-shadow:0 4px 8px rgba(0,0,0,.05)}
+.adv-drawer.on{display:block}
+.adv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 16px;max-width:1380px;margin:0 auto}
+.adv-field label{display:block;font:700 8.5px 'Inter';letter-spacing:.8px;color:var(--t3);margin-bottom:4px;text-transform:uppercase}
+.adv-field select{width:100%;padding:6px 8px;border:1px solid var(--br);border-radius:4px;font:500 11px 'Inter';background:#fff;color:var(--tx);font-family:'Inter',sans-serif}
+.adv-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px;max-width:1380px;margin-left:auto;margin-right:auto}
+.badv{padding:6px 12px;font:700 10px 'Inter';letter-spacing:.5px;border-radius:4px;cursor:pointer;border:1.5px solid var(--br);background:#fff;font-family:'Inter',sans-serif;color:var(--tx)}
+.badv-y{background:var(--y);border-color:var(--y);color:#000}
+
+/* CONTENT */
+.content{max-width:1380px;margin:0 auto;padding:14px}
+
+/* TABS */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--br);margin-bottom:14px;background:#fff;border-radius:8px 8px 0 0;padding:0 4px;border:1px solid var(--br);border-bottom:none;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.tab{padding:10px 14px;font:600 12px 'Inter';color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;transition:.15s;font-family:'Inter',sans-serif}
+.tab:hover{color:var(--tx)}
+.tab.on{color:var(--navy);border-bottom-color:var(--navy)}
+.tabpane{display:none}
+.tabpane.on{display:block}
+
+/* SECTION TITLE */
+.sectitle{text-align:center;font:600 11.5px 'Inter';color:var(--t3);letter-spacing:1.5px;text-transform:uppercase;padding:14px 0 8px;border-top:1px solid var(--br);margin-top:8px}
+.sectitle:first-child{border-top:none;margin-top:0}
+.sectitle b{color:var(--tx);font-weight:700}
+
+/* KPI ROW */
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:8px}
+.kpi-card{background:#fff;border:1px solid var(--br);border-top:3px solid var(--y);border-radius:4px;padding:10px 12px;min-height:74px}
+.kpi-card .kl{font:700 8.5px 'Inter';letter-spacing:.8px;color:var(--t3);text-transform:uppercase}
+.kpi-card .kv{font:700 22px 'Inter';color:var(--tx);letter-spacing:-.8px;line-height:1.1;margin-top:4px}
+.kpi-card .kv.navy{color:var(--navy)}
+.kpi-card .kv .unit{font:700 11px 'Inter';color:var(--t3);margin-left:3px;letter-spacing:0}
+.kpi-card .kd{font:600 10px 'Inter';margin-top:6px;color:var(--t3)}
+.kpi-card .kd .pp{font-weight:700;margin-right:4px}
+.kpi-card .kd .pp.pos{color:var(--green)}
+.kpi-card .kd .pp.neg{color:var(--red)}
+
+/* CARDS GRID 3-up */
+.cards3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.card{background:#fff;border:1px solid var(--br);border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.04);overflow:hidden}
+.card-h{background:#fff;padding:9px 12px;border-bottom:2px solid var(--y);font:700 11.5px 'Inter';letter-spacing:.4px;color:var(--tx)}
+
+/* P&L TABLE (compacta para 3-up) */
+table.pnl{width:100%;border-collapse:collapse;font:500 11px 'Inter';font-family:'Inter',sans-serif}
+table.pnl thead th{background:#1A1A1A;color:#FFF;padding:7px 6px;text-align:right;font:700 9px 'Inter';letter-spacing:.5px;text-transform:uppercase;border-right:1px solid #2a2a2a}
+table.pnl thead th:first-child{text-align:left;background:var(--y);color:#000}
+table.pnl thead th .sub{display:block;font:500 8px 'Inter';color:#888;letter-spacing:.3px;text-transform:none;margin-top:1px}
+table.pnl thead th:first-child .sub{color:#444}
+table.pnl tbody td{padding:5px 6px;border-bottom:1px solid #F2F2F2;text-align:right;white-space:nowrap}
+table.pnl tbody td:first-child{text-align:left;font-weight:600;color:var(--tx)}
+table.pnl tbody tr.indent td:first-child{padding-left:14px;color:var(--t2);font-weight:500}
+table.pnl tbody tr.subt td{background:#FAFAFA;font-weight:700;border-top:1px solid var(--br);border-bottom:1px solid var(--br)}
+table.pnl tbody tr.vcpct td{background:#FFFBE6;border-top:2px solid var(--y);border-bottom:1px solid var(--y);font-weight:700}
+table.pnl tbody tr.vcnom td{background:#1A1A1A;color:var(--y);font-weight:700;border-bottom:none}
+table.pnl tbody tr.vcnom td:first-child{color:var(--y)}
+.delta.pos{color:var(--green);font-weight:600}
+.delta.neg{color:var(--red);font-weight:600}
+.delta.muted{color:var(--t3)}
+
+/* GENERIC TABLE (Top 15 / cross) */
+table.tx{width:100%;border-collapse:collapse;font:500 11.5px 'Inter';font-family:'Inter',sans-serif}
+table.tx thead th{background:#1A1A1A;color:#FFF;padding:8px 10px;text-align:right;font:700 9.5px 'Inter';letter-spacing:.5px;text-transform:uppercase;position:sticky;top:90px;z-index:5}
+table.tx thead th:first-child,table.tx thead th.tl{text-align:left}
+table.tx tbody td{padding:7px 10px;border-bottom:1px solid #F2F2F2;text-align:right;white-space:nowrap}
+table.tx tbody td:first-child,table.tx tbody td.tl{text-align:left;font-weight:600}
+table.tx tbody tr:hover{background:#FAFAFA}
+.dim{color:var(--t2);font-weight:500}
+.rk{display:inline-block;width:22px;height:18px;background:var(--s3);color:var(--tx);text-align:center;border-radius:3px;font:700 10px 'Inter';line-height:18px;margin-right:6px}
+.rk.top{background:var(--y);color:#000}
+.rk.bot{background:rgba(229,57,53,.15);color:var(--red)}
+
+/* PILLS */
+.pill{display:inline-block;padding:2px 7px;font:700 9.5px 'Inter';letter-spacing:.4px;border-radius:10px;border:1px solid transparent}
+.pill.g{background:rgba(0,166,80,.08);color:var(--green);border-color:rgba(34,197,94,.2)}
+.pill.r{background:rgba(229,57,53,.07);color:var(--red)}
+.pill.y{background:rgba(255,219,0,.10);color:#9C8A00;border-color:rgba(255,219,0,.4)}
+.pill.gr{background:var(--s3);color:var(--t2)}
+
+/* MINI WATERFALL */
+.wf{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--br);border-radius:6px;overflow:hidden}
+.wfc{padding:11px 8px;text-align:center;background:#fff}
+.wfc.plan{background:var(--s2)}
+.wfc.pos{background:rgba(0,166,80,.05)}
+.wfc.neg{background:rgba(229,57,53,.04)}
+.wfc.real{background:rgba(255,219,0,.07);border-top:3px solid var(--y)}
+.wfv{font:700 17px 'Inter';color:var(--tx);letter-spacing:-.5px}
+.wfc.pos .wfv{color:var(--green)}
+.wfc.neg .wfv{color:var(--red)}
+.wfl{font:700 8.5px 'Inter';letter-spacing:.8px;color:var(--t3);text-transform:uppercase;margin-top:4px}
+
+/* BOTTOM BAR */
+.bottombar{position:fixed;bottom:0;left:0;right:0;height:30px;background:#1A1A1A;border-top:3px solid var(--y);display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:100;gap:12px}
+.bottombar .meta{color:#888;font:500 10px 'Inter';white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bottombar .meta b{color:#fff}
+
+.spacer{flex:1}
+
+/* CHIPS subtle */
+.chip-row{display:flex;gap:6px;align-items:center;margin:6px 0 12px;flex-wrap:wrap}
+.chip{background:#1A1A1A;color:#fff;padding:4px 9px;border-radius:14px;font:700 9.5px 'Inter';letter-spacing:.5px;display:inline-flex;align-items:center;gap:5px}
+.chip .k{color:#888;font-weight:500}
+.chip.y{background:var(--y);color:#000}
+.chip.y .k{color:#444}
+.chip-row .right{margin-left:auto;font:600 10px 'Inter';color:var(--t3);letter-spacing:.4px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="logo">M</span>
+  <span class="title">OP P&amp;L vs Plan · Online Payments</span>
+  <span class="subtitle">Pricing &amp; Profitability</span>
+  <span class="right">v<b>2.0</b> · <b>MOCK</b> · src: <b>SBOX_FINANCEMP.BT_MP_ACQUIRING_CROSS_V3</b></span>
+</div>
+
+<div class="filterbar">
+  <select class="fbtn" id="f-period">
+    <option value="2026-08">Ago 2026</option>
+    <option value="2026-07">Jul 2026</option>
+    <option value="2026-06">Jun 2026</option>
+    <option value="2026-05">May 2026</option>
+    <option value="2026-04">Abr 2026</option>
+    <option value="2026-03" selected>Mar 2026</option>
+    <option value="2026-02">Feb 2026</option>
+    <option value="2026-01">Ene 2026</option>
+    <option value="2025-12">Dic 2025</option>
+  </select>
+  <span class="fsep"></span>
+  <button class="fbtn on-site" data-site="ALL">ALL</button>
+  <button class="fbtn" data-site="MLA">MLA</button>
+  <button class="fbtn" data-site="MLB">MLB</button>
+  <button class="fbtn" data-site="MLM">MLM</button>
+  <button class="fbtn" data-site="MLC">MLC</button>
+  <button class="fbtn" data-site="MCO">MCO</button>
+  <button class="fbtn" data-site="MPE">MPE</button>
+  <button class="fbtn" data-site="MLU">MLU</button>
+  <span class="fsep"></span>
+  <button class="fbtn on-y" data-subbu="ALL">ALL SubBU</button>
+  <button class="fbtn" data-subbu="BS">Big Sellers</button>
+  <button class="fbtn" data-subbu="SMB">SMB</button>
+  <button class="fbtn" data-subbu="Longtail">Longtail</button>
+  <span class="fsep"></span>
+  <select class="fbtn" id="f-cur">
+    <option value="usd" selected>USD</option>
+    <option value="lc">LC</option>
+  </select>
+  <span class="spacer"></span>
+  <button class="fbtn fbtn-more" id="open-adv">+ FILTROS <span id="adv-count"></span></button>
+</div>
+
+<div class="adv-drawer" id="adv">
+  <div class="adv-grid">
+    <div class="adv-field"><label>CATEGORIA_PLAN_OP</label>
+      <select id="af-cat"><option value="">(todos)</option><option>Cards</option><option>Account Money</option><option>Crypto</option><option>QR</option></select></div>
+    <div class="adv-field"><label>OP_PRODUCT</label>
+      <select id="af-prod"><option value="">(todos)</option><option>Checkout Pro</option><option>Checkout API</option><option>Link de Pago</option><option>Subscriptions</option><option>Marketplace</option></select></div>
+    <div class="adv-field"><label>SUBSEGMENT_SEL</label>
+      <select id="af-subseg"><option value="">(todos)</option><option>SMB Tier 1</option><option>SMB Tier 2</option><option>BS Anchor</option><option>BS Strategic</option><option>Longtail Mass</option></select></div>
+    <div class="adv-field"><label>PAY_PM_TYPE_ID_2</label>
+      <select id="af-pm"><option value="">(todos)</option><option>Credit Card</option><option>Debit Card</option><option>Account Money</option><option>Boleto/PIX</option><option>Bank Transfer</option></select></div>
+    <div class="adv-field"><label>FINANCING_TYPE_3 (Cuotas)</label>
+      <select id="af-fin"><option value="">(todos)</option><option>1X</option><option>2-6 cuotas</option><option>7-12 cuotas</option><option>13+ cuotas</option><option>Cuota Simple</option><option>PSJ</option><option>Not Financed</option></select></div>
+    <div class="adv-field"><label>PAY_CCD_ACQUIRER_ID</label>
+      <select id="af-acq"><option value="">(todos)</option><option>Cielo</option><option>Rede</option><option>Prisma</option><option>First Data</option><option>Stone</option><option>Getnet</option></select></div>
+    <div class="adv-field"><label>UE_MP_ISSUER_DESC</label>
+      <select id="af-iss"><option value="">(todos)</option><option>Itaú</option><option>Bradesco</option><option>Santander</option><option>Banco do Brasil</option><option>Caixa</option><option>Galicia</option><option>BBVA</option></select></div>
+    <div class="adv-field"><label>UE_MP_TAG_FUNGIBLE</label>
+      <select id="af-fung"><option value="">(todos)</option><option>Fungible</option><option>Non-Fungible</option></select></div>
+  </div>
+  <div class="adv-actions">
+    <button class="badv" id="adv-clear">Limpiar</button>
+    <button class="badv badv-y" id="adv-apply">Aplicar</button>
+  </div>
+</div>
+
+<div class="content">
+  <div class="tabs" id="tabs">
+    <div class="tab on" data-tab="pnl">P&amp;L vs Plan</div>
+    <div class="tab" data-tab="cross">Top Cross Productos</div>
+    <div class="tab" data-tab="desv">Top 15 Desvíos</div>
+    <div class="tab" data-tab="psj">Cuotas (PSJ)</div>
+    <div class="tab" data-tab="ie">Industria · Issuer · Acquirer</div>
+  </div>
+
+  <!-- TAB: P&L vs Plan -->
+  <div class="tabpane on" id="pane-pnl">
+    <div class="chip-row" id="chip-row-pnl"></div>
+
+    <div class="sectitle" id="kpi-title">RESUMEN <b id="kpi-scope">ALL</b> · <b id="kpi-period">MAR 2026</b></div>
+    <div class="kpi-row" id="kpi-row"></div>
+
+    <div class="sectitle">P&amp;L POR PRODUCTO · <b id="pnl-period">MAR 2026</b></div>
+    <div class="cards3" id="cards3"></div>
+
+    <div class="sectitle">WALK PLAN → REAL · VC USD</div>
+    <div class="card"><div class="card-h" style="border-bottom-color:var(--br)">Descomposición ΔVC vs Plan</div>
+      <div style="padding:10px"><div class="wf" id="wf"></div></div>
+    </div>
+  </div>
+
+  <!-- TAB: Top Cross -->
+  <div class="tabpane" id="pane-cross">
+    <div class="card">
+      <div class="card-h">Top Cross · Producto × Segmento × Cuotas · Mar 2026</div>
+      <div style="padding:0 0 10px">
+        <table class="tx" id="cross-table"></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: Top Desvíos -->
+  <div class="tabpane" id="pane-desv">
+    <div class="card">
+      <div class="card-h">Top 15 Desvíos vs Plan · ranking por |ΔVC USD|</div>
+      <div style="padding:0 0 10px">
+        <table class="tx" id="desv-table"></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: PSJ Cuotas -->
+  <div class="tabpane" id="pane-psj">
+    <div class="card">
+      <div class="card-h">P&amp;L por Bucket de Cuotas · Mar 2026</div>
+      <div style="padding:0 0 10px">
+        <table class="tx" id="psj-table"></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: Industria / Issuer / Acquirer -->
+  <div class="tabpane" id="pane-ie">
+    <div class="chip-row" style="margin-bottom:10px">
+      <span class="smallcap" style="font:700 8.5px Inter;letter-spacing:.8px;color:var(--t3);text-transform:uppercase">Cortar por:</span>
+      <button class="fbtn on-site" data-cut="industry">Industria</button>
+      <button class="fbtn" data-cut="issuer">Issuer</button>
+      <button class="fbtn" data-cut="acquirer">Acquirer</button>
+    </div>
+    <div class="card">
+      <div class="card-h" id="ie-title">P&amp;L por Industria · Mar 2026</div>
+      <div style="padding:0 0 10px">
+        <table class="tx" id="ie-table"></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="bottombar">
+  <span class="meta">Source · <b>SBOX_FINANCEMP.BT_MP_ACQUIRING_CROSS_V3</b></span>
+  <span class="meta">Refresh · <b id="meta-refresh">2026-05-06</b> · Period · <b id="meta-period">Mar 2026</b> · Site · <b id="meta-site">ALL</b> · SubBU · <b id="meta-subbu">ALL</b></span>
+  <span class="meta">v<b>2.0 · MOCK</b></span>
+</div>
+
+<script>
+/* ============================================================
+   MOCK DATA
+   Reemplazar este bloque con el JSON output de
+   sql/05_grid_export_json.sql (capa 04_grid_long).
+   Estructura esperada:
+     DATA.metrics[period][site][subbu][product] = {
+        tpv_usd, vc_usd, vc_pct, ntr_pct, plan_*, ratios_*, ...
+     }
+============================================================ */
+const SITES = ['MLA','MLB','MLM','MLC','MCO','MPE','MLU'];
+const SUBBUS = ['BS','SMB','Longtail'];
+const PRODUCTS = ['Checkout Pro','Checkout API','Link de Pago','Subscriptions','Marketplace'];
+const SITE_W = {MLA:.22, MLB:.50, MLM:.12, MLC:.07, MCO:.05, MPE:.03, MLU:.01};
+const SUBBU_W = {BS:.60, SMB:.30, Longtail:.10};
+const PROD_W = {'Checkout Pro':.45,'Checkout API':.22,'Link de Pago':.18,'Subscriptions':.08,'Marketplace':.07};
+const PERIODS = ['2025-04','2025-05','2025-06','2025-07','2025-08','2025-09','2025-10','2025-11','2025-12','2026-01','2026-02','2026-03','2026-04','2026-05','2026-06','2026-07','2026-08'];
+
+function mulberry32(a){return function(){let t=a+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
+const r = mulberry32(7);
+
+function tpvTotalAt(p){const i=PERIODS.indexOf(p);return 320e6*(1+i*0.018+(r()-.5)*0.04)*(1+Math.sin(i/2)*0.04)}
+
+function buildRatios(site,subbu,product){
+  const baseVc = subbu==='BS'?0.062:subbu==='SMB'?0.078:subbu==='Longtail'?0.092:0.069;
+  const siteAdj = site==='MLB'?-0.005:site==='MLA'?+0.003:site==='MLM'?+0.002:0;
+  const prodAdj = product==='Link de Pago'?+0.005:product==='Marketplace'?-0.003:0;
+  const vc_pct = baseVc + siteAdj + prodAdj + (r()-.5)*0.005;
+  return {
+    proc_pct:        0.0145 + (r()-.5)*0.002,
+    fin_gross_pct:   0.0612 + (r()-.5)*0.005,
+    fin_cost_pct:   -0.0428 + (r()-.5)*0.004,
+    fin_net_pct:     0.0184 + (r()-.5)*0.003,   // Financing Net
+    plazo_pct:       0.0008 + (r()-.5)*0.0003,
+    other_rev_pct:   0.0002 + (r()-.5)*0.0002,
+    sales_tax_pct:  -0.0095 + (r()-.5)*0.002,
+    ccff_pct:       -0.0118 + (r()-.5)*0.002,
+    cp_pct:         -0.0038 + (r()-.5)*0.0008,
+    cbk_pct:        -0.0042 + (r()-.5)*0.0007,
+    rev_share_pct:  -0.0008 + (r()-.5)*0.0003,
+    bpp_pct:        -0.0021 + (r()-.5)*0.0005,
+    mkt_perf_pct:   -0.0028 + (r()-.5)*0.0008,
+    cx_pct:         -0.0014 + (r()-.5)*0.0004,
+    hosting_pct:    -0.0011 + (r()-.5)*0.0003,
+    vc_pct, ntr_pct: vc_pct + 0.025 + (r()-.5)*0.003,
+    eco_vc_pct: vc_pct - 0.008 + (r()-.5)*0.003
+  };
+}
+
+const DATA = { meta:{refresh:'2026-05-06'}, metrics:{}, ratios:{} };
+PERIODS.forEach(p=>{
+  DATA.metrics[p] = {};
+  const tot = tpvTotalAt(p);
+  ['ALL',...SITES].forEach(site=>{
+    DATA.metrics[p][site]={};
+    ['ALL',...SUBBUS].forEach(sub=>{
+      DATA.metrics[p][site][sub]={};
+      ['ALL',...PRODUCTS].forEach(prod=>{
+        const sw=site==='ALL'?1:SITE_W[site];
+        const bw=sub==='ALL'?1:SUBBU_W[sub];
+        const pw=prod==='ALL'?1:PROD_W[prod];
+        const tpv=tot*sw*bw*pw*(1+(r()-.5)*0.05);
+        const ratios = buildRatios(site,sub,prod);
+        const vc_usd=tpv*ratios.vc_pct;
+        const planFactor = 1 - 0.018 + (r()-.5)*0.025;
+        const planTpv = tpv*planFactor*(1+(r()-.5)*0.02);
+        const planRatios = buildRatios(site,sub,prod);
+        const planVcPct = ratios.vc_pct + 0.001 + (r()-.5)*0.003;
+        DATA.metrics[p][site][sub][prod] = {
+          tpv_usd:tpv, vc_usd, vc_pct:ratios.vc_pct,
+          ratios,
+          plan_tpv:planTpv, plan_vc:planTpv*planVcPct, plan_vc_pct:planVcPct,
+          plan_ratios:{
+            ...ratios,
+            proc_pct: ratios.proc_pct + 0.0009 + (r()-.5)*0.0006,
+            fin_net_pct: ratios.fin_net_pct + 0.0008 + (r()-.5)*0.0006,
+            ccff_pct: ratios.ccff_pct - 0.0006 + (r()-.5)*0.0005,
+            cbk_pct: ratios.cbk_pct - 0.0003 + (r()-.5)*0.0004,
+            mkt_perf_pct: ratios.mkt_perf_pct - 0.0005 + (r()-.5)*0.0006,
+            vc_pct: planVcPct
+          }
+        };
+      });
+    });
+  });
+});
+
+/* ============================================================
+   STATE
+============================================================ */
+const STATE = { period:'2026-03', site:'ALL', subbu:'ALL', cur:'usd', cut:'industry', adv:{} };
+
+/* ============================================================
+   FORMATTERS
+============================================================ */
+function fmtM(v,d=1){if(v==null||isNaN(v))return '–';const a=Math.abs(v);if(a>=1e9)return (v/1e9).toFixed(2)+' B';if(a>=1e6)return (v/1e6).toFixed(d)+' M';if(a>=1e3)return (v/1e3).toFixed(0)+' K';return v.toFixed(0)}
+function fmtSignM(v,d=1){if(v==null||isNaN(v))return '–';const s=v>0?'+':'';return s+fmtM(v,d)}
+function fmtPct(v,d=2){if(v==null||isNaN(v))return '–';return (v*100).toFixed(d)+'%'}
+function fmtPp(v,d=2){if(v==null||isNaN(v))return '–';const s=v>0?'+':'';return s+(v*100).toFixed(d)+'pp'}
+function periodLabel(p){const [y,m]=p.split('-');const names=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];return names[+m]+' '+y.slice(2)}
+function periodLabelLong(p){const [y,m]=p.split('-');const names=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];return (names[+m]+' '+y).toUpperCase()}
+function prevPeriod(p){const i=PERIODS.indexOf(p);return i>0?PERIODS[i-1]:null}
+function ytdPeriods(p){const [y,m]=p.split('-');const out=[];for(let i=1;i<=+m;i++){const k=y+'-'+String(i).padStart(2,'0');if(PERIODS.includes(k))out.push(k)}return out}
+function getMetric(period,site,subbu,product){
+  return DATA.metrics[period]?.[site]?.[subbu]?.[product||'ALL'] || null;
+}
+
+/* ============================================================
+   UI BINDINGS
+============================================================ */
+document.querySelectorAll('[data-site]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('[data-site]').forEach(x=>x.classList.remove('on-site'));
+  b.classList.add('on-site');STATE.site=b.dataset.site;render();
+});
+document.querySelectorAll('[data-subbu]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('[data-subbu]').forEach(x=>x.classList.remove('on-y'));
+  b.classList.add('on-y');STATE.subbu=b.dataset.subbu;render();
+});
+document.querySelectorAll('[data-cut]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('[data-cut]').forEach(x=>x.classList.remove('on-site'));
+  b.classList.add('on-site');STATE.cut=b.dataset.cut;renderIE();
+});
+document.getElementById('f-period').onchange=e=>{STATE.period=e.target.value;render()};
+document.getElementById('f-cur').onchange=e=>{STATE.cur=e.target.value;render()};
+
+document.getElementById('open-adv').onclick=()=>{
+  document.getElementById('adv').classList.toggle('on');
+  document.getElementById('open-adv').classList.toggle('on');
+};
+document.getElementById('adv-clear').onclick=()=>{
+  document.querySelectorAll('#adv select').forEach(s=>s.value='');STATE.adv={};updateAdvCount();render();
+};
+document.getElementById('adv-apply').onclick=()=>{
+  STATE.adv={};
+  ['af-cat','af-prod','af-subseg','af-pm','af-fin','af-acq','af-iss','af-fung'].forEach(id=>{
+    const v=document.getElementById(id).value;if(v)STATE.adv[id]=v;
+  });
+  updateAdvCount();render();
+  document.getElementById('adv').classList.remove('on');
+  document.getElementById('open-adv').classList.remove('on');
+};
+function updateAdvCount(){const n=Object.keys(STATE.adv).length;document.getElementById('adv-count').innerHTML=n?`<span class="adv-active">${n}</span>`:''}
+
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.tabpane').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on');document.getElementById('pane-'+t.dataset.tab).classList.add('on');
+  render();
+});
+
+/* ============================================================
+   P&L LINES BUILDER
+   Devuelve un array de filas para una columna (current month, plan, ytd, etc.).
+   Cada fila: { metric, type, value, pct }
+============================================================ */
+function buildPnL(metric, ratios, tpv){
+  return [
+    {metric:'TPV',                 type:'tpv',   pct:null,                  value:tpv},
+    {metric:'Processing Rev.',     type:'pct',   pct:ratios.proc_pct,       value:tpv*ratios.proc_pct},
+    {metric:'Financing Net',       type:'pct',   pct:ratios.fin_net_pct,    value:tpv*ratios.fin_net_pct},
+    {metric:'Plazo',               type:'pct',   pct:ratios.plazo_pct,      value:tpv*ratios.plazo_pct},
+    {metric:'Other Revenues',      type:'pct',   pct:ratios.other_rev_pct,  value:tpv*ratios.other_rev_pct},
+    {metric:'CCFF',                type:'pct',   pct:ratios.ccff_pct,       value:tpv*ratios.ccff_pct},
+    {metric:'Net CBK',             type:'pct',   pct:ratios.cbk_pct,        value:tpv*ratios.cbk_pct},
+    {metric:'Revenue Share',       type:'pct',   pct:ratios.rev_share_pct,  value:tpv*ratios.rev_share_pct},
+    {metric:'BPP',                 type:'pct',   pct:ratios.bpp_pct,        value:tpv*ratios.bpp_pct},
+    {metric:'Marketing Perf.',     type:'pct',   pct:ratios.mkt_perf_pct,   value:tpv*ratios.mkt_perf_pct},
+    {metric:'CX',                  type:'pct',   pct:ratios.cx_pct,         value:tpv*ratios.cx_pct},
+    {metric:'Hosting',             type:'pct',   pct:ratios.hosting_pct,    value:tpv*ratios.hosting_pct},
+    {metric:'VC',                  type:'vcpct', pct:ratios.vc_pct,         value:tpv*ratios.vc_pct},
+    {metric:'VC',                  type:'vcnom', pct:null,                  value:tpv*ratios.vc_pct}
+  ];
+}
+
+/* ============================================================
+   RENDER
+============================================================ */
+function render(){
+  document.getElementById('meta-period').textContent = periodLabel(STATE.period);
+  document.getElementById('meta-site').textContent = STATE.site;
+  document.getElementById('meta-subbu').textContent = STATE.subbu;
+  document.getElementById('kpi-period').textContent = periodLabelLong(STATE.period);
+  document.getElementById('pnl-period').textContent = periodLabelLong(STATE.period);
+  document.getElementById('kpi-scope').textContent = scopeLabel();
+  renderChips();
+  renderKPIs();
+  renderCards();
+  renderWaterfall();
+  renderCross();
+  renderDesv();
+  renderPSJ();
+  renderIE();
+}
+
+function scopeLabel(){
+  const parts = [];
+  if(STATE.subbu!=='ALL') parts.push(STATE.subbu==='BS'?'BIG SELLERS':STATE.subbu.toUpperCase());
+  if(STATE.site!=='ALL') parts.push(STATE.site);
+  parts.push('ONLINE PAYMENTS');
+  return parts.join(' · ');
+}
+
+function renderChips(){
+  const c = document.getElementById('chip-row-pnl');
+  const chips = [];
+  chips.push(`<span class="chip">Pricing &amp; Profitability</span>`);
+  chips.push(`<span class="chip">${STATE.subbu==='ALL'?'All SubBU':STATE.subbu==='BS'?'Big Sellers':STATE.subbu}</span>`);
+  chips.push(`<span class="chip y">${STATE.site==='ALL'?'ALL Sites':STATE.site} <span class="k">· OP</span></span>`);
+  Object.entries(STATE.adv).forEach(([k,v])=>{
+    chips.push(`<span class="chip"><span class="k">${k.replace('af-','')}</span> ${v}</span>`);
+  });
+  c.innerHTML = chips.join('') + `<span class="right">Pricing &amp; Profitability · ${STATE.site==='ALL'?'All':STATE.site}</span>`;
+}
+
+function renderKPIs(){
+  const m = getMetric(STATE.period,STATE.site,STATE.subbu,'ALL');
+  if(!m){document.getElementById('kpi-row').innerHTML='';return;}
+  const pm = prevPeriod(STATE.period); const pmM = pm?getMetric(pm,STATE.site,STATE.subbu,'ALL'):null;
+  const dTpv_prev = pmM?m.tpv_usd-pmM.tpv_usd:null;
+  const dTpv_plan = m.tpv_usd-m.plan_tpv;
+  const dVcPct_prev = pmM?m.vc_pct-pmM.vc_pct:null;
+  const dVcPct_plan = m.vc_pct-m.plan_vc_pct;
+  const dVc_prev = pmM?m.vc_usd-pmM.vc_usd:null;
+  // YTD
+  const yperiods = ytdPeriods(STATE.period);
+  const ytdTpv = yperiods.reduce((a,p)=>{const x=getMetric(p,STATE.site,STATE.subbu,'ALL');return a+(x?.tpv_usd||0)},0);
+  const ytdVc  = yperiods.reduce((a,p)=>{const x=getMetric(p,STATE.site,STATE.subbu,'ALL');return a+(x?.vc_usd||0)},0);
+  const ytdPlanTpv = yperiods.reduce((a,p)=>{const x=getMetric(p,STATE.site,STATE.subbu,'ALL');return a+(x?.plan_tpv||0)},0);
+  const ytdPlanVc  = yperiods.reduce((a,p)=>{const x=getMetric(p,STATE.site,STATE.subbu,'ALL');return a+(x?.plan_vc||0)},0);
+  const ytdVcPct = ytdVc/ytdTpv;
+  const ytdPlanVcPct = ytdPlanVc/ytdPlanTpv;
+  const yLabel = `Q${Math.ceil(yperiods.length/3)} ENE-${periodLabel(STATE.period).split(' ')[0].toUpperCase()}`;
+  const tiles = [
+    {l:'TPV ' + (STATE.subbu==='BS'?'BIG SELLERS':STATE.subbu==='ALL'?'OP':STATE.subbu) + ' (M USD)', v:fmtM(m.tpv_usd,0), unit:'M', d:[
+      {pp:fmtSignM(dTpv_prev,1),up:dTpv_prev>=0,lab:'vs '+(pm?periodLabel(pm):'')},
+      {pp:fmtSignM(dTpv_plan,1),up:dTpv_plan>=0,lab:'vs Plan'}
+    ]},
+    {l:'VC% TOTAL', v:fmtPct(m.vc_pct,2), navy:false, d:[
+      {pp:fmtPp(dVcPct_prev,2),up:dVcPct_prev>=0,lab:'vs '+(pm?periodLabel(pm):'')},
+      {pp:fmtPp(dVcPct_plan,2),up:dVcPct_plan>=0,lab:'vs Plan'}
+    ]},
+    {l:'VC NOMINAL (M USD)', v:fmtM(m.vc_usd,0), unit:'M', d:[
+      {pp:fmtSignM(dVc_prev,1),up:dVc_prev>=0,lab:'vs '+(pm?periodLabel(pm):'')}
+    ]},
+    {l:`${yLabel} VC%`, v:fmtPct(ytdVcPct,2), d:[
+      {pp:fmtPp(ytdVcPct-ytdPlanVcPct,2),up:ytdVcPct-ytdPlanVcPct>=0,lab:'vs Plan Q'}
+    ]},
+    {l:`${yLabel} TPV (M USD)`, v:fmtM(ytdTpv,0), unit:'M', d:[
+      {pp:fmtSignM(ytdTpv-ytdPlanTpv,1),up:ytdTpv-ytdPlanTpv>=0,lab:'vs Plan Q'}
+    ]},
+    {l:`${yLabel} VC NOM (M USD)`, v:fmtM(ytdVc,0), unit:'M', d:[
+      {pp:fmtSignM(ytdVc-ytdPlanVc,1),up:ytdVc-ytdPlanVc>=0,lab:'vs Plan Q'}
+    ]},
+  ];
+  document.getElementById('kpi-row').innerHTML = tiles.map(t=>`
+    <div class="kpi-card">
+      <div class="kl">${t.l}</div>
+      <div class="kv navy">${t.v}${t.unit?'<span class="unit">'+t.unit+'</span>':''}</div>
+      ${(t.d||[]).map(d=>`<div class="kd"><span class="pp ${d.up?'pos':'neg'}">${d.pp}</span>${d.lab}</div>`).join('')}
+    </div>`).join('');
+}
+
+/* 3 cards: OP TOTAL · CHECKOUT (PRO+API) · LINK DE PAGO */
+function renderCards(){
+  const cards = [
+    {title:'OP TOTAL',     productKey:'ALL',          desc:'Todos los productos OP'},
+    {title:'CHECKOUT',     productKey:'Checkout Pro', desc:'Checkout Pro + API'},
+    {title:'LINK DE PAGO', productKey:'Link de Pago', desc:'Link · Subscriptions · Marketplace'}
+  ];
+  document.getElementById('cards3').innerHTML = cards.map(c => renderPnLCard(c)).join('');
+}
+
+function renderPnLCard(card){
+  const pm = prevPeriod(STATE.period);
+  const m = getMetric(STATE.period,STATE.site,STATE.subbu,card.productKey);
+  if(!m){return `<div class="card"><div class="card-h">${card.title}</div><div style="padding:12px;color:#888;font-size:11px">Sin datos</div></div>`}
+  const pmM = pm?getMetric(pm,STATE.site,STATE.subbu,card.productKey):null;
+  const yperiods = ytdPeriods(STATE.period);
+  // Build current and reference rows
+  const curRows = buildPnL('cur',m.ratios,m.tpv_usd);
+  const planRows = buildPnL('plan',m.plan_ratios,m.plan_tpv);
+  const prevRows = pmM?buildPnL('prev',pmM.ratios,pmM.tpv_usd):null;
+  // YTD aggregation (sum nominales, recompute %s)
+  const ytdAgg = aggregateYtd(yperiods,STATE.site,STATE.subbu,card.productKey);
+  const ytdAggPlan = aggregateYtdPlan(yperiods,STATE.site,STATE.subbu,card.productKey);
+  const ytdRows = ytdAgg ? buildPnL('ytd',ytdAgg.ratios,ytdAgg.tpv_usd) : null;
+  const ytdRowsPlan = ytdAggPlan ? buildPnL('ytdp',ytdAggPlan.ratios,ytdAggPlan.tpv_usd) : null;
+  const yLabel = `Q${Math.ceil(yperiods.length/3)} ENE-${periodLabel(STATE.period).split(' ')[0].toUpperCase()}`;
+
+  // Header
+  let html = `<div class="card"><div class="card-h">${card.title}</div>
+    <table class="pnl"><thead><tr>
+      <th>METRICA</th>
+      <th>${periodLabelLong(STATE.period)}<span class="sub">(M USD)</span></th>
+      <th>VS ${pm?periodLabel(pm).toUpperCase():'PREV'}</th>
+      <th>VS PLAN</th>
+      <th>${yLabel}<span class="sub">(M USD)</span></th>
+      <th>VS PLAN ${yLabel.split(' ')[0]}</th>
+    </tr></thead><tbody>`;
+
+  curRows.forEach((row,idx)=>{
+    const pl = planRows[idx];
+    const pv = prevRows?prevRows[idx]:null;
+    const yt = ytdRows?ytdRows[idx]:null;
+    const yp = ytdRowsPlan?ytdRowsPlan[idx]:null;
+    html += renderPnLRow(row,pl,pv,yt,yp);
+  });
+
+  html += `</tbody></table></div>`;
+  return html;
+}
+
+function renderPnLRow(row,plan,prev,ytd,ytdPlan){
+  let cls = '';
+  if(row.metric==='TPV') cls='subt';
+  if(row.type==='vcpct') cls='vcpct';
+  if(row.type==='vcnom') cls='vcnom';
+  if(['Processing Rev.','Financing Net','Plazo','Other Revenues','CCFF','Net CBK','Revenue Share','BPP','Marketing Perf.','CX','Hosting'].includes(row.metric) && row.type!=='vcpct') cls='indent';
+
+  // For TPV / VC nominal: nominal in M USD, deltas in M USD
+  // For pct lines: pct, deltas in pp
+  // For vcpct: pct, deltas in pp
+  // For vcnom: nominal, deltas in M USD
+  const isNominal = row.type==='tpv' || row.type==='vcnom';
+  const cur = isNominal ? fmtM(row.value,1)+' M' : fmtPct(row.pct,2);
+  const dPrev = isNominal ?
+      (prev?fmtSignM(row.value-prev.value,1)+' M':'–') :
+      (prev?fmtPp(row.pct-prev.pct,2):'–');
+  const dPlan = isNominal ?
+      fmtSignM(row.value-plan.value,1)+' M' :
+      fmtPp(row.pct-plan.pct,2);
+  const ytdCur = ytd ? (isNominal?fmtM(ytd.value,1)+' M':fmtPct(ytd.pct,2)) : '–';
+  const ytdD = (ytd&&ytdPlan) ?
+      (isNominal?fmtSignM(ytd.value-ytdPlan.value,1)+' M':fmtPp(ytd.pct-ytdPlan.pct,2)) : '–';
+  // delta sign coloring (cuidado: para costos negativos un "alza absoluta" es mejor; pero acá usamos signo directo del delta)
+  const cPrev = (prev?(isNominal?row.value-prev.value:row.pct-prev.pct):0);
+  const cPlan = (isNominal?row.value-plan.value:row.pct-plan.pct);
+  const cYtdD = (ytd&&ytdPlan)?(isNominal?ytd.value-ytdPlan.value:ytd.pct-ytdPlan.pct):0;
+
+  return `<tr class="${cls}">
+    <td>${row.metric}${row.type==='vcpct'?' %':''}${row.type==='vcnom'?' (M USD)':''}</td>
+    <td>${cur}</td>
+    <td class="delta ${prev?(cPrev>=0?'pos':'neg'):'muted'}">${dPrev}</td>
+    <td class="delta ${cPlan>=0?'pos':'neg'}">${dPlan}</td>
+    <td>${ytdCur}</td>
+    <td class="delta ${(ytd&&ytdPlan)?(cYtdD>=0?'pos':'neg'):'muted'}">${ytdD}</td>
+  </tr>`;
+}
+
+function aggregateYtd(periods,site,subbu,product){
+  let tpv=0, vc=0, components={};
+  let n=0;
+  periods.forEach(p=>{
+    const m = getMetric(p,site,subbu,product);
+    if(!m)return;
+    tpv+=m.tpv_usd; vc+=m.vc_usd; n++;
+    Object.entries(m.ratios).forEach(([k,v])=>{
+      components[k]=(components[k]||0)+m.tpv_usd*v;
+    });
+  });
+  if(!tpv)return null;
+  const ratios={};
+  Object.entries(components).forEach(([k,v])=>ratios[k]=v/tpv);
+  ratios.vc_pct=vc/tpv;
+  return {tpv_usd:tpv, vc_usd:vc, ratios};
+}
+function aggregateYtdPlan(periods,site,subbu,product){
+  let tpv=0, vc=0, components={};
+  periods.forEach(p=>{
+    const m = getMetric(p,site,subbu,product);
+    if(!m)return;
+    tpv+=m.plan_tpv; vc+=m.plan_vc;
+    Object.entries(m.plan_ratios).forEach(([k,v])=>{
+      components[k]=(components[k]||0)+m.plan_tpv*v;
+    });
+  });
+  if(!tpv)return null;
+  const ratios={};
+  Object.entries(components).forEach(([k,v])=>ratios[k]=v/tpv);
+  ratios.vc_pct=vc/tpv;
+  return {tpv_usd:tpv, vc_usd:vc, ratios};
+}
+
+/* WATERFALL */
+function renderWaterfall(){
+  const m = getMetric(STATE.period,STATE.site,STATE.subbu,'ALL');
+  if(!m)return;
+  const dPlan = m.vc_usd - m.plan_vc;
+  const vol  = dPlan*0.45, rate = dPlan*0.30, mix = dPlan*0.15, fx = dPlan*0.07;
+  const unex = dPlan - vol - rate - mix - fx;
+  document.getElementById('wf').innerHTML = `
+    <div class="wfc plan"><div class="wfv">${fmtM(m.plan_vc,1)} M</div><div class="wfl">Plan VC</div></div>
+    <div class="wfc ${vol>=0?'pos':'neg'}"><div class="wfv">${fmtSignM(vol,1)} M</div><div class="wfl">Volumen</div></div>
+    <div class="wfc ${rate>=0?'pos':'neg'}"><div class="wfv">${fmtSignM(rate,1)} M</div><div class="wfl">Rate</div></div>
+    <div class="wfc ${mix>=0?'pos':'neg'}"><div class="wfv">${fmtSignM(mix,1)} M</div><div class="wfl">Mix</div></div>
+    <div class="wfc ${fx>=0?'pos':'neg'}"><div class="wfv">${fmtSignM(fx,1)} M</div><div class="wfl">FX</div></div>
+    <div class="wfc ${unex>=0?'pos':'neg'}"><div class="wfv">${fmtSignM(unex,1)} M</div><div class="wfl">No Explic.</div></div>
+    <div class="wfc real"><div class="wfv">${fmtM(m.vc_usd,1)} M</div><div class="wfl">Real VC</div></div>`;
+}
+
+/* CROSS · top combinaciones por VC USD */
+function renderCross(){
+  const rows = [];
+  const segs = SUBBUS;
+  const cuotas = ['1X','2-6','7-12','13+','Cuota Simple','PSJ'];
+  segs.forEach(s=>PRODUCTS.forEach(p=>cuotas.forEach(c=>{
+    const m = getMetric(STATE.period,STATE.site,s,p);
+    if(!m)return;
+    // mock split por cuotas (factor pseudo-random)
+    const f = 0.05 + r()*0.35;
+    const tpv = m.tpv_usd*f;
+    const vc = m.vc_usd*f*(0.85+r()*0.3);
+    const pvc = m.plan_vc*f;
+    rows.push({segment:s, product:p, cuotas:c, tpv, vc, vc_pct:vc/tpv, plan_vc:pvc, dplan:vc-pvc});
+  })));
+  rows.sort((a,b)=>b.tpv-a.tpv);
+  const top = rows.slice(0,20);
+  let html = `<thead><tr>
+    <th class="tl">#</th><th class="tl">Segmento</th><th class="tl">Producto</th><th class="tl">Cuotas</th>
+    <th>TPV (M USD)</th><th>VC (M USD)</th><th>VC %</th><th>Plan VC</th><th>Δ vs Plan</th>
+  </tr></thead><tbody>`;
+  top.forEach((row,i)=>{
+    html += `<tr>
+      <td class="tl"><span class="rk ${i<3?'top':''}">${i+1}</span></td>
+      <td class="tl"><span class="dim">${row.segment}</span></td>
+      <td class="tl">${row.product}</td>
+      <td class="tl"><span class="dim">${row.cuotas}</span></td>
+      <td>${fmtM(row.tpv,1)}</td>
+      <td>${fmtM(row.vc,1)}</td>
+      <td><span class="pill ${row.vc_pct>=0.07?'g':'gr'}">${fmtPct(row.vc_pct,2)}</span></td>
+      <td class="dim">${fmtM(row.plan_vc,1)}</td>
+      <td class="delta ${row.dplan>=0?'pos':'neg'}">${fmtSignM(row.dplan,1)}</td>
+    </tr>`;
+  });
+  html += '</tbody>';
+  document.getElementById('cross-table').innerHTML = html;
+}
+
+/* DESV · top 15 por |Δ vs Plan| */
+function renderDesv(){
+  const rows = [];
+  SITES.forEach(site=>SUBBUS.forEach(s=>PRODUCTS.forEach(p=>{
+    const m = getMetric(STATE.period,site,s,p);
+    if(!m)return;
+    rows.push({site,segment:s,product:p,
+      tpv:m.tpv_usd, vc:m.vc_usd, plan_vc:m.plan_vc,
+      d_vc:m.vc_usd-m.plan_vc, d_vcpct:m.vc_pct-m.plan_vc_pct,
+      d_tpv:m.tpv_usd-m.plan_tpv});
+  })));
+  rows.sort((a,b)=>Math.abs(b.d_vc)-Math.abs(a.d_vc));
+  const top = rows.slice(0,15);
+  let html = `<thead><tr>
+    <th class="tl">#</th><th class="tl">Site</th><th class="tl">SubBU</th><th class="tl">Producto</th>
+    <th>TPV (M USD)</th><th>Δ TPV vs Plan</th>
+    <th>VC (M USD)</th><th>VC %</th><th>Δ VC vs Plan</th><th>Δ VC% (pp)</th>
+  </tr></thead><tbody>`;
+  top.forEach((row,i)=>{
+    const cls = row.d_vc>=0?'top':'bot';
+    html += `<tr>
+      <td class="tl"><span class="rk ${cls}">${i+1}</span></td>
+      <td class="tl">${row.site}</td>
+      <td class="tl"><span class="dim">${row.segment==='BS'?'Big Sellers':row.segment}</span></td>
+      <td class="tl">${row.product}</td>
+      <td>${fmtM(row.tpv,1)}</td>
+      <td class="delta ${row.d_tpv>=0?'pos':'neg'}">${fmtSignM(row.d_tpv,1)}</td>
+      <td>${fmtM(row.vc,1)}</td>
+      <td><span class="pill gr">${fmtPct(row.vc/row.tpv,2)}</span></td>
+      <td class="delta ${row.d_vc>=0?'pos':'neg'}">${fmtSignM(row.d_vc,1)}</td>
+      <td class="delta ${row.d_vcpct>=0?'pos':'neg'}">${fmtPp(row.d_vcpct,2)}</td>
+    </tr>`;
+  });
+  html += '</tbody>';
+  document.getElementById('desv-table').innerHTML = html;
+}
+
+/* PSJ · P&L por bucket de cuotas */
+function renderPSJ(){
+  const buckets = ['1X','2 a 6','7 a 12','13+','Cuota Simple','PSJ','Not Financed'];
+  const m = getMetric(STATE.period,STATE.site,STATE.subbu,'ALL');
+  if(!m)return;
+  // mock distribution
+  const dist = [.42,.20,.18,.07,.06,.05,.02];
+  let html = `<thead><tr>
+    <th class="tl">Cuotas Bucket</th>
+    <th>TPV (M USD)</th><th>Share</th>
+    <th>Processing %</th><th>Fin Net %</th><th>CCFF %</th><th>CBK %</th><th>BPP %</th>
+    <th>VC %</th><th>VC (M USD)</th><th>Δ VC vs Plan</th>
+  </tr></thead><tbody>`;
+  buckets.forEach((b,i)=>{
+    const f = dist[i];
+    const tpv = m.tpv_usd*f;
+    const proc = m.ratios.proc_pct*(0.9+r()*0.2);
+    const fnet = m.ratios.fin_net_pct*(b==='1X'?0:1)*(0.9+r()*0.2);
+    const ccff = m.ratios.ccff_pct*(b==='1X'?0.2:1.1)*(0.9+r()*0.2);
+    const cbk  = m.ratios.cbk_pct*(0.9+r()*0.2);
+    const bpp  = m.ratios.bpp_pct*(0.9+r()*0.2);
+    const vcp  = m.ratios.vc_pct*(b==='13+'?1.1:b==='1X'?0.95:1)*(0.95+r()*0.1);
+    const vcv  = tpv*vcp;
+    const dPlan = vcv - m.plan_vc*f*(0.95+r()*0.1);
+    html += `<tr>
+      <td class="tl">${b}</td>
+      <td>${fmtM(tpv,1)}</td>
+      <td><span class="pill gr">${fmtPct(f,1)}</span></td>
+      <td>${fmtPct(proc,2)}</td>
+      <td>${fmtPct(fnet,2)}</td>
+      <td>${fmtPct(ccff,2)}</td>
+      <td>${fmtPct(cbk,2)}</td>
+      <td>${fmtPct(bpp,2)}</td>
+      <td><b>${fmtPct(vcp,2)}</b></td>
+      <td><b>${fmtM(vcv,1)}</b></td>
+      <td class="delta ${dPlan>=0?'pos':'neg'}">${fmtSignM(dPlan,1)}</td>
+    </tr>`;
+  });
+  html += '</tbody>';
+  document.getElementById('psj-table').innerHTML = html;
+}
+
+/* IE · cortar por industria/issuer/acquirer */
+const DIM_VALUES = {
+  industry:['Retail','Travel','Education','Marketplace','Services','Food','Apparel','Health','Entertainment','Other'],
+  issuer:['Itaú','Bradesco','Santander','Banco do Brasil','Caixa','Galicia','BBVA','Visa','Mastercard','Amex','Other'],
+  acquirer:['Cielo','Rede','Stone','Getnet','First Data','Prisma','Other']
+};
+function renderIE(){
+  const m = getMetric(STATE.period,STATE.site,STATE.subbu,'ALL');
+  if(!m)return;
+  const cut = STATE.cut;
+  document.getElementById('ie-title').textContent = 'P&L por '+(cut==='industry'?'Industria':cut==='issuer'?'Issuer':'Acquirer')+' · '+periodLabelLong(STATE.period);
+  const vals = DIM_VALUES[cut];
+  // pseudo distribution
+  const total = vals.reduce((a,_,i)=>a+(1/(i+1.5)),0);
+  let html = `<thead><tr>
+    <th class="tl">${cut==='industry'?'Industria':cut==='issuer'?'Issuer':'Acquirer'}</th>
+    <th>TPV (M USD)</th><th>Share</th>
+    <th>Processing %</th><th>Fin Net %</th><th>CBK %</th><th>BPP %</th>
+    <th>VC %</th><th>VC (M USD)</th><th>Δ VC vs Plan</th>
+  </tr></thead><tbody>`;
+  vals.forEach((v,i)=>{
+    const f = (1/(i+1.5))/total;
+    const tpv = m.tpv_usd*f;
+    const proc = m.ratios.proc_pct*(0.92+r()*0.16);
+    const fnet = m.ratios.fin_net_pct*(0.92+r()*0.16);
+    const cbk  = m.ratios.cbk_pct*(0.85+r()*0.30);
+    const bpp  = m.ratios.bpp_pct*(0.92+r()*0.16);
+    const vcp  = m.ratios.vc_pct*(0.95+r()*0.10);
+    const vcv  = tpv*vcp;
+    const dPlan = vcv - m.plan_vc*f*(0.95+r()*0.1);
+    html += `<tr>
+      <td class="tl">${v}</td>
+      <td>${fmtM(tpv,1)}</td>
+      <td><span class="pill gr">${fmtPct(f,1)}</span></td>
+      <td>${fmtPct(proc,2)}</td>
+      <td>${fmtPct(fnet,2)}</td>
+      <td>${fmtPct(cbk,2)}</td>
+      <td>${fmtPct(bpp,2)}</td>
+      <td><b>${fmtPct(vcp,2)}</b></td>
+      <td><b>${fmtM(vcv,1)}</b></td>
+      <td class="delta ${dPlan>=0?'pos':'neg'}">${fmtSignM(dPlan,1)}</td>
+    </tr>`;
+  });
+  html += '</tbody>';
+  document.getElementById('ie-table').innerHTML = html;
+}
+
+/* BOOT */
+render();
+</script>
+</body>
+</html>
