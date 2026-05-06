@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1200">
+<title>OP P&L · Online Payments</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+<style>
+:root{
+  --bg:#F5F5F5;--s0:#fff;--s2:#F0F0F0;--s3:#E8E8E8;--br:#E4E4E4;
+  --tx:#1A1A1A;--t2:#444;--t3:#888;
+  --y:#FFDB00;--navy:#1a237e;--green:#00A650;--red:#E53935;
+  --gh:#C7C7C7;--gp:#E8E8E8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{font-family:'Inter',sans-serif;font-size:13px;background:var(--bg);color:var(--tx)}
+body{padding-top:90px;padding-bottom:54px;min-height:100vh}
+
+/* TOP BAR */
+.topbar{position:fixed;top:0;left:0;right:0;height:46px;background:#1A1A1A;border-bottom:3px solid var(--y);display:flex;align-items:center;padding:0 16px;z-index:100}
+.logo{width:26px;height:22px;background:var(--y);color:#000;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;border-radius:3px;margin-right:10px}
+.title{color:#fff;font-weight:700;font-size:14px;letter-spacing:.3px}
+.subtitle{color:#888;font-size:10.5px;margin-left:10px}
+.topbar .right{margin-left:auto;color:#888;font-size:10px}
+.topbar .right b{color:#fff}
+
+/* FILTER BAR */
+.filterbar{position:fixed;top:46px;left:0;right:0;height:44px;background:#fff;border-bottom:1px solid var(--br);display:flex;align-items:center;padding:0 16px;gap:6px;z-index:99;overflow-x:auto;white-space:nowrap}
+.fbtn{background:#fff;border:1.5px solid var(--br);padding:5px 9px;font:700 10px 'Inter';letter-spacing:.5px;border-radius:4px;cursor:pointer;color:var(--t2);font-family:'Inter',sans-serif}
+.fbtn.on-site{background:var(--s3);color:var(--tx);border-color:var(--s3)}
+.fbtn.on-y{background:var(--y);color:#000;border-color:var(--y)}
+.fbtn:hover{border-color:#999}
+.fsep{width:1px;height:18px;background:var(--br);margin:0 4px;flex-shrink:0}
+select.fbtn{-webkit-appearance:none;appearance:none;padding-right:20px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 5'><path d='M0 0l4 5 4-5z' fill='%23888'/></svg>");background-repeat:no-repeat;background-position:right 6px center;background-size:7px}
+.fbtn-more{background:#1A1A1A;color:var(--y);border-color:#1A1A1A}
+.fbtn-more.on{background:var(--y);color:#000;border-color:var(--y)}
+
+/* ADV DRAWER */
+.adv-drawer{position:fixed;top:90px;left:0;right:0;background:#fff;border-bottom:1px solid var(--br);padding:14px 16px;display:none;z-index:98;box-shadow:0 4px 8px rgba(0,0,0,.05)}
+.adv-drawer.on{display:block}
+.adv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 16px;max-width:1200px;margin:0 auto}
+.adv-field label{display:block;font:700 8.5px 'Inter';letter-spacing:.8px;color:var(--t3);margin-bottom:4px;text-transform:uppercase}
+.adv-field select{width:100%;padding:6px 8px;border:1px solid var(--br);border-radius:4px;font:500 11px 'Inter';background:#fff;color:var(--tx);font-family:'Inter',sans-serif}
+.adv-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px;max-width:1200px;margin-left:auto;margin-right:auto}
+.badv{padding:6px 12px;font:700 10px 'Inter';letter-spacing:.5px;border-radius:4px;cursor:pointer;border:1.5px solid var(--br);background:#fff;font-family:'Inter',sans-serif;color:var(--tx)}
+.badv-y{background:var(--y);border-color:var(--y);color:#000}
+.adv-active{display:inline-block;background:var(--y);color:#000;border-radius:10px;padding:1px 6px;font:700 9px 'Inter';margin-left:4px}
+
+/* CONTENT */
+.content{max-width:1200px;margin:0 auto;padding:16px}
+
+/* TABS */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--br);margin-bottom:14px;background:#fff;border-radius:8px 8px 0 0;padding:0 4px;border:1px solid var(--br);border-bottom:none;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.tab{padding:11px 16px;font:600 12px 'Inter';color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;transition:.15s;font-family:'Inter',sans-serif}
+.tab:hover{color:var(--tx)}
+.tab.on{color:var(--navy);border-bottom-color:var(--navy)}
+.tabpane{display:none}
+.tabpane.on{display:block}
+
+/* CARDS */
+.card{border:1px solid var(--br);border-radius:8px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:12px;overflow:hidden}
+.ch{padding:11px 14px;border-bottom:1px solid var(--br);display:flex;justify-content:space-between;align-items:baseline}
+.ch h3{font:600 12px 'Inter'}
+.ch .ch-r{display:flex;gap:8px;align-items:baseline}
+.ch p,.ch span.sub{font:400 9.5px 'Inter';color:var(--t3)}
+.cb{padding:12px 14px}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--br);border-radius:6px;overflow:hidden}
+.kpi{padding:11px 12px;background:#fff;min-height:78px}
+.kpi.kbk{background:#1A1A1A}
+.kpi.kbk .kv{color:var(--y)}
+.kpi.kbk .kl{color:#888}
+.kpi.kp{background:rgba(0,166,80,.05)}
+.kpi.kn{background:rgba(229,57,53,.05)}
+.kpi.ky{background:rgba(255,219,0,.07)}
+.kpi .kl{font:700 8.5px 'Inter';letter-spacing:.8px;color:var(--t3);text-transform:uppercase}
+.kpi .kv{font:700 24px 'Inter';color:var(--navy);letter-spacing:-1px;margin-top:4px;line-height:1}
+.kpi .kd{font:600 10.5px 'Inter';margin-top:5px;color:var(--t3)}
+.kpi .kd.up{color:var(--green)}
+.kpi .kd.dn{color:var(--red)}
+.kpi .kd b{font-weight:700}
+
+/* GRID UTILS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.g23{display:grid;grid-template-columns:2fr 1fr;gap:12px}
+
+/* CHART BOX */
+.chart-box{position:relative;height:240px}
+.chart-box.tall{height:300px}
+.chart-box.short{height:180px}
+
+/* WATERFALL */
+.wf{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--br);border-radius:8px;overflow:hidden}
+.wfc{padding:14px 8px;text-align:center;background:#fff}
+.wfc.plan{background:var(--s2)}
+.wfc.pos{background:rgba(0,166,80,.05)}
+.wfc.neg{background:rgba(229,57,53,.04)}
+.wfc.real{background:rgba(255,219,0,.07);border-top:3px solid var(--y)}
+.wfv{font:700 19px 'Inter';color:var(--tx);letter-spacing:-.5px}
+.wfc.pos .wfv{color:var(--green)}
+.wfc.neg .wfv{color:var(--red)}
+.wfl{font:700 8.5px 'Inter';letter-spacing:.8px;color:var(--t3);text-transform:uppercase;margin-top:4px}
+.wfx{font:500 9.5px 'Inter';color:var(--t3);margin-top:2px}
+
+/* P&L TABLE */
+table.pnl{width:100%;border-collapse:collapse;font:500 11.5px 'Inter';font-family:'Inter',sans-serif}
+table.pnl th{background:var(--s2);padding:8px 10px;text-align:right;font:700 9.5px 'Inter';letter-spacing:.6px;color:var(--t2);text-transform:uppercase;border-bottom:1px solid var(--br);position:sticky;top:90px;z-index:5}
+table.pnl th:first-child,table.pnl td:first-child{text-align:left}
+table.pnl td{padding:6px 10px;border-bottom:1px solid #F5F5F5;text-align:right}
+table.pnl td:first-child{font-weight:600}
+table.pnl tr.subtotal td{background:#FAFAFA;font-weight:700;border-top:1px solid var(--br)}
+table.pnl tr.total td{background:#1A1A1A;color:var(--y);font-weight:700}
+table.pnl tr.indent td:first-child{padding-left:22px;color:var(--t2);font-weight:500}
+.num.pos{color:var(--green)}
+.num.neg{color:var(--red)}
+.num.muted{color:var(--t3)}
+
+/* PILLS */
+.pill{display:inline-block;padding:2px 7px;font:700 9.5px 'Inter';letter-spacing:.4px;border-radius:10px;border:1px solid transparent}
+.pill.g{background:rgba(0,166,80,.08);color:var(--green);border-color:rgba(34,197,94,.2)}
+.pill.r{background:rgba(229,57,53,.07);color:var(--red)}
+.pill.y{background:rgba(255,219,0,.10);color:#C9AC00}
+.pill.gr{background:var(--s3);color:var(--t2)}
+
+/* RANK BARS */
+.rank{display:flex;flex-direction:column;gap:6px}
+.rank-row{display:grid;grid-template-columns:90px 1fr 80px;gap:8px;align-items:center;font:500 11px 'Inter'}
+.rank-row .lab{color:var(--t2);font-weight:600}
+.rank-row .bar{height:14px;background:var(--s2);border-radius:3px;overflow:hidden;position:relative}
+.rank-row .bar div{height:100%;border-radius:3px}
+.rank-row .bar.pos div{background:var(--green)}
+.rank-row .bar.neg div{background:var(--red)}
+.rank-row .val{text-align:right;font-weight:700;color:var(--tx)}
+.rank-row .val.pos{color:var(--green)}
+.rank-row .val.neg{color:var(--red)}
+
+/* BOTTOM BAR */
+.bottombar{position:fixed;bottom:0;left:0;right:0;height:38px;background:#1A1A1A;border-top:3px solid var(--y);display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:100;gap:12px}
+.bottombar .meta{color:#888;font:500 10px 'Inter';white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bottombar .meta b{color:#fff}
+
+/* TINY UTILS */
+.flex{display:flex;gap:8px;align-items:center}
+.spacer{flex:1}
+.muted{color:var(--t3)}
+.smallcap{font:700 8.5px 'Inter';letter-spacing:.8px;color:var(--t3);text-transform:uppercase}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="logo">M</span>
+  <span class="title">OP P&amp;L · Online Payments</span>
+  <span class="subtitle">TPV · NTR · Variable Contribution · Plan · Effects</span>
+  <span class="right">v<b>1.0</b> · <b>MOCK</b> · src: <b>SBOX_FINANCEMP.BT_MP_ACQUIRING_CROSS_V3</b></span>
+</div>
+
+<div class="filterbar">
+  <select class="fbtn" id="f-period">
+    <option value="2026-08">Ago 2026</option>
+    <option value="2026-07">Jul 2026</option>
+    <option value="2026-06">Jun 2026</option>
+    <option value="2026-05">May 2026</option>
+    <option value="2026-04" selected>Abr 2026</option>
+    <option value="2026-03">Mar 2026</option>
+    <option value="2026-02">Feb 2026</option>
+    <option value="2026-01">Ene 2026</option>
+    <option value="2025-12">Dic 2025</option>
+  </select>
+  <span class="fsep"></span>
+  <button class="fbtn on-site" data-site="ALL">ALL</button>
+  <button class="fbtn" data-site="MLA">MLA</button>
+  <button class="fbtn" data-site="MLB">MLB</button>
+  <button class="fbtn" data-site="MLM">MLM</button>
+  <button class="fbtn" data-site="MLC">MLC</button>
+  <button class="fbtn" data-site="MCO">MCO</button>
+  <button class="fbtn" data-site="MPE">MPE</button>
+  <button class="fbtn" data-site="MLU">MLU</button>
+  <span class="fsep"></span>
+  <button class="fbtn on-y" data-subbu="ALL">ALL SubBU</button>
+  <button class="fbtn" data-subbu="BS">BS</button>
+  <button class="fbtn" data-subbu="SMB">SMB</button>
+  <button class="fbtn" data-subbu="Longtail">Longtail</button>
+  <span class="fsep"></span>
+  <select class="fbtn" id="f-comp">
+    <option value="mom">vs Mes Anterior</option>
+    <option value="yoy">vs LY (YoY)</option>
+    <option value="plan" selected>vs Plan</option>
+  </select>
+  <span class="fsep"></span>
+  <select class="fbtn" id="f-cur">
+    <option value="usd" selected>USD</option>
+    <option value="lc">LC</option>
+  </select>
+  <span class="spacer"></span>
+  <button class="fbtn fbtn-more" id="open-adv">+ FILTROS <span id="adv-count"></span></button>
+</div>
+
+<div class="adv-drawer" id="adv">
+  <div class="adv-grid">
+    <div class="adv-field"><label>CATEGORIA_PLAN_OP</label>
+      <select id="af-cat"><option value="">(todos)</option><option>Cards</option><option>Account Money</option><option>Crypto</option><option>QR</option></select></div>
+    <div class="adv-field"><label>OP_PRODUCT</label>
+      <select id="af-prod"><option value="">(todos)</option><option>Checkout Pro</option><option>Checkout API</option><option>Link de Pago</option><option>Subscriptions</option><option>Marketplace</option></select></div>
+    <div class="adv-field"><label>SUBSEGMENT_SEL</label>
+      <select id="af-subseg"><option value="">(todos)</option><option>SMB Tier 1</option><option>SMB Tier 2</option><option>BS Anchor</option><option>BS Strategic</option><option>Longtail Mass</option></select></div>
+    <div class="adv-field"><label>PAY_PM_TYPE_ID_2</label>
+      <select id="af-pm"><option value="">(todos)</option><option>Credit Card</option><option>Debit Card</option><option>Account Money</option><option>Boleto/PIX</option><option>Bank Transfer</option></select></div>
+    <div class="adv-field"><label>FINANCING_TYPE_3</label>
+      <select id="af-fin"><option value="">(todos)</option><option>1X</option><option>2-6 cuotas</option><option>7-12 cuotas</option><option>13+ cuotas</option><option>Cuota Simple</option><option>Not Financed</option></select></div>
+    <div class="adv-field"><label>PAY_CCD_ACQUIRER_ID</label>
+      <select id="af-acq"><option value="">(todos)</option><option>Cielo</option><option>Rede</option><option>Prisma</option><option>First Data</option><option>Stone</option><option>Getnet</option></select></div>
+    <div class="adv-field"><label>UE_MP_ISSUER_DESC</label>
+      <select id="af-iss"><option value="">(todos)</option><option>Itaú</option><option>Bradesco</option><option>Santander</option><option>Banco do Brasil</option><option>Caixa</option><option>Galicia</option><option>BBVA</option></select></div>
+    <div class="adv-field"><label>UE_MP_TAG_FUNGIBLE</label>
+      <select id="af-fung"><option value="">(todos)</option><option>Fungible</option><option>Non-Fungible</option></select></div>
+  </div>
+  <div class="adv-actions">
+    <button class="badv" id="adv-clear">Limpiar</button>
+    <button class="badv badv-y" id="adv-apply">Aplicar</button>
+  </div>
+</div>
+
+<div class="content">
+  <div class="tabs" id="tabs">
+    <div class="tab on" data-tab="overview">Overview</div>
+    <div class="tab" data-tab="tpv">TPV</div>
+    <div class="tab" data-tab="vc">VC %</div>
+    <div class="tab" data-tab="effects">Efectos</div>
+    <div class="tab" data-tab="pnl">P&amp;L Detail</div>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div class="tabpane on" id="pane-overview">
+    <div class="card">
+      <div class="ch"><h3 id="ov-title">Overview · ALL · Abr 2026</h3><span class="sub" id="ov-sub">Real vs Plan · USD</span></div>
+      <div class="cb"><div class="kpi-grid" id="ov-kpis"></div></div>
+    </div>
+    <div class="g23">
+      <div class="card">
+        <div class="ch"><h3>Walk Plan → Real · VC USD</h3><span class="sub">Mes en curso</span></div>
+        <div class="cb"><div class="wf" id="wf"></div></div>
+      </div>
+      <div class="card">
+        <div class="ch"><h3>VC% Real vs Plan</h3><span class="sub">Último 12m</span></div>
+        <div class="cb"><div class="chart-box short"><canvas id="ov-vc-line"></canvas></div></div>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="ch"><h3>TPV · YoY %</h3><span class="sub">Crecimiento USD</span></div>
+        <div class="cb"><div class="chart-box"><canvas id="ov-tpv-yoy"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="ch"><h3>Top Movers · ΔVC vs Plan</h3><span class="sub">Por site</span></div>
+        <div class="cb"><div class="rank" id="ov-movers"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TPV -->
+  <div class="tabpane" id="pane-tpv">
+    <div class="card">
+      <div class="ch"><h3>TPV USD por SubBU</h3><span class="sub">Stacked · 13 meses · BS / SMB / Longtail</span></div>
+      <div class="cb"><div class="chart-box tall"><canvas id="tpv-stacked"></canvas></div></div>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="ch"><h3>TPV YoY%</h3><span class="sub">Real vs Plan</span></div>
+        <div class="cb"><div class="chart-box"><canvas id="tpv-yoy2"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="ch"><h3>TPV Share por Site</h3><span class="sub">Mes en curso</span></div>
+        <div class="cb"><div class="rank" id="tpv-share"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VC % -->
+  <div class="tabpane" id="pane-vc">
+    <div class="card">
+      <div class="ch"><h3>VC USD &amp; VC %</h3><span class="sub">Barras = VC USD · Línea navy = VC% Real · Línea roja = VC% Plan</span></div>
+      <div class="cb"><div class="chart-box tall"><canvas id="vc-combo"></canvas></div></div>
+    </div>
+    <div class="g3">
+      <div class="card">
+        <div class="ch"><h3>NTR % TPV</h3></div>
+        <div class="cb"><div class="chart-box short"><canvas id="vc-ntr"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="ch"><h3>Processing % TPV</h3></div>
+        <div class="cb"><div class="chart-box short"><canvas id="vc-proc"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="ch"><h3>Fin Cost % TPV</h3></div>
+        <div class="cb"><div class="chart-box short"><canvas id="vc-fc"></canvas></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EFFECTS -->
+  <div class="tabpane" id="pane-effects">
+    <div class="card">
+      <div class="ch"><h3>Descomposición ΔVC</h3><span class="sub">Volumen + Rate + Mix + FX + Plan + No Explicado</span></div>
+      <div class="cb"><div class="wf" id="wf-eff" style="grid-template-columns:repeat(7,1fr)"></div></div>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="ch"><h3>Efecto Mix · por dimensión</h3><span class="sub">Cuotas / MOP / Segmento / Industria</span></div>
+        <div class="cb"><div class="rank" id="eff-mix"></div></div>
+      </div>
+      <div class="card">
+        <div class="ch"><h3>Volumen vs Rate · por Site</h3><span class="sub">Bubble: x=ΔVol y=ΔRate size=TPV</span></div>
+        <div class="cb"><div class="chart-box"><canvas id="eff-bubble"></canvas></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- P&L DETAIL -->
+  <div class="tabpane" id="pane-pnl">
+    <div class="card">
+      <div class="ch"><h3 id="pnl-title">P&amp;L Detail · ALL · Abr 2026</h3><span class="sub" id="pnl-sub">USD · Real vs Plan</span></div>
+      <div class="cb">
+        <table class="pnl" id="pnl-table"><thead></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="bottombar">
+  <span class="meta">Source · <b>SBOX_FINANCEMP.BT_MP_ACQUIRING_CROSS_V3</b></span>
+  <span class="meta">Refresh · <b id="meta-refresh">2026-05-06</b> · Period · <b id="meta-period">Abr 2026</b> · Site · <b id="meta-site">ALL</b> · SubBU · <b id="meta-subbu">ALL</b></span>
+  <span class="meta">v<b>1.0 · MOCK</b></span>
+</div>
+
+<script>
+/* ============================================================
+   MOCK DATA GENERATOR
+   Reemplazar este bloque con el JSON output de
+   sql/05_grid_export_json.sql cuando esté disponible.
+============================================================ */
+const SITES = ['MLA','MLB','MLM','MLC','MCO','MPE','MLU'];
+const SUBBUS = ['BS','SMB','Longtail'];
+const SITE_WEIGHT = {MLA:.22, MLB:.50, MLM:.12, MLC:.07, MCO:.05, MPE:.03, MLU:.01};
+const SUBBU_WEIGHT = {BS:.60, SMB:.30, Longtail:.10};
+const PERIODS = ['2025-04','2025-05','2025-06','2025-07','2025-08','2025-09','2025-10','2025-11','2025-12','2026-01','2026-02','2026-03','2026-04','2026-05','2026-06','2026-07','2026-08'];
+
+// seeded rand
+function mulberry32(a){return function(){let t=a+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
+const r = mulberry32(42);
+
+// build base series: TPV USD total ~400M Apr2026, growing 25% YoY
+function tpvTotalAt(period){
+  const idx = PERIODS.indexOf(period);
+  const base = 320e6; // 12m ago
+  const growth = 1 + (idx*0.018) + (r()-.5)*0.04;
+  const seasonal = 1 + Math.sin(idx/2)*0.04;
+  return base * growth * seasonal;
+}
+
+// Generate dataset
+const DATA = {
+  meta: { refresh:'2026-05-06', source:'SBOX_FINANCEMP.BT_MP_ACQUIRING_CROSS_V3', version:'v1.0 mock' },
+  // metrics[period][site][subbu] = {tpv, ntr, vc, ecovc, ratios, plan...}
+  metrics: {},
+  // pnl[period][site][subbu] = { lines: [{concept, value_usd, pct_tpv, plan, delta_plan}] }
+  pnl: {}
+};
+
+PERIODS.forEach(p => {
+  DATA.metrics[p] = {};
+  DATA.pnl[p] = {};
+  const totalTpv = tpvTotalAt(p);
+  ['ALL', ...SITES].forEach(site => {
+    DATA.metrics[p][site] = {};
+    DATA.pnl[p][site] = {};
+    const sw = site === 'ALL' ? 1 : SITE_WEIGHT[site];
+    ['ALL', ...SUBBUS].forEach(sub => {
+      const bw = sub === 'ALL' ? 1 : SUBBU_WEIGHT[sub];
+      const tpv = totalTpv * sw * bw * (1 + (r()-.5)*0.06);
+      // VC% varies per site/subbu
+      const baseVcPct = (sub === 'BS' ? 0.062 : sub === 'SMB' ? 0.078 : sub === 'Longtail' ? 0.092 : 0.069);
+      const siteAdj = site === 'MLB' ? -0.005 : site === 'MLA' ? +0.003 : site === 'MLM' ? +0.002 : 0;
+      const vcPct = baseVcPct + siteAdj + (r()-.5)*0.008;
+      const vc = tpv * vcPct;
+      const ntrPct = vcPct + 0.025 + (r()-.5)*0.005;
+      const ntr = tpv * ntrPct;
+      const ecoVcPct = vcPct - 0.008 + (r()-.5)*0.003;
+      const ecoVc = tpv * ecoVcPct;
+      const planVc = vc * (1 - 0.018 + (r()-.5)*0.03);
+      const planTpv = tpv * (1 - 0.022 + (r()-.5)*0.04);
+      const planVcPct = planVc / planTpv;
+      DATA.metrics[p][site][sub] = {
+        tpv_usd: tpv, ntr_usd: ntr, vc_usd: vc, eco_vc_usd: ecoVc,
+        vc_pct: vcPct, ntr_pct: ntrPct, eco_vc_pct: ecoVcPct,
+        proc_pct: 0.0145 + (r()-.5)*0.002,
+        fin_gross_pct: 0.0612 + (r()-.5)*0.005,
+        fin_cost_pct: -0.0428 + (r()-.5)*0.004,
+        sales_tax_pct: -0.0095 + (r()-.5)*0.002,
+        cp_pct: -0.0038 + (r()-.5)*0.0008,
+        cbk_pct: -0.0042 + (r()-.5)*0.0007,
+        bpp_pct: -0.0021 + (r()-.5)*0.0005,
+        incent_pct: -0.0028 + (r()-.5)*0.0008,
+        other_pct: -0.0018 + (r()-.5)*0.0004,
+        plan_tpv: planTpv, plan_vc: planVc, plan_vc_pct: planVcPct,
+      };
+      // P&L lines (USD)
+      const m = DATA.metrics[p][site][sub];
+      DATA.pnl[p][site][sub] = [
+        ['TPV', tpv, null, planTpv, 'total'],
+        ['Processing Fees', tpv*m.proc_pct, m.proc_pct, planTpv*m.proc_pct*1.02, 'rev'],
+        ['Financing Gross', tpv*m.fin_gross_pct, m.fin_gross_pct, planTpv*m.fin_gross_pct*0.99, 'rev'],
+        ['Financing Cost', tpv*m.fin_cost_pct, m.fin_cost_pct, planTpv*m.fin_cost_pct*1.05, 'cost'],
+        ['Sales Tax', tpv*m.sales_tax_pct, m.sales_tax_pct, planTpv*m.sales_tax_pct, 'cost'],
+        ['CP', tpv*m.cp_pct, m.cp_pct, planTpv*m.cp_pct, 'cost'],
+        ['NTR', ntr, ntrPct, planTpv*ntrPct*0.96, 'sub'],
+        ['CBK', tpv*m.cbk_pct, m.cbk_pct, planTpv*m.cbk_pct*0.93, 'cost'],
+        ['BPP', tpv*m.bpp_pct, m.bpp_pct, planTpv*m.bpp_pct, 'cost'],
+        ['Incentivos', tpv*m.incent_pct, m.incent_pct, planTpv*m.incent_pct, 'cost'],
+        ['Other Direct Var Cost', tpv*m.other_pct, m.other_pct, planTpv*m.other_pct, 'cost'],
+        ['VC', vc, vcPct, planVc, 'sub'],
+        ['Economic VC', ecoVc, ecoVcPct, planVc*0.92, 'eco'],
+      ];
+    });
+  });
+});
+
+/* ============================================================
+   STATE & FORMATTERS
+============================================================ */
+const STATE = { period:'2026-04', site:'ALL', subbu:'ALL', comp:'plan', cur:'usd', adv:{} };
+
+function fmtUsd(v){ if(v==null||isNaN(v))return '–'; const a=Math.abs(v); if(a>=1e9)return (v/1e9).toFixed(2)+'B'; if(a>=1e6)return (v/1e6).toFixed(1)+'M'; if(a>=1e3)return (v/1e3).toFixed(0)+'K'; return v.toFixed(0); }
+function fmtPct(v,d=1){ if(v==null||isNaN(v))return '–'; return (v*100).toFixed(d)+'%'; }
+function fmtPp(v,d=0){ if(v==null||isNaN(v))return '–'; const s=v>0?'+':''; return s+(v*100).toFixed(d)+' bps'; }
+function fmtSign(v){ const s=v>0?'+':''; return s+fmtUsd(v); }
+function periodLabel(p){ const [y,m]=p.split('-'); const names=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']; return names[+m]+' '+y.slice(2); }
+function prevPeriod(p){ const i=PERIODS.indexOf(p); return i>0?PERIODS[i-1]:null; }
+function lyPeriod(p){ const i=PERIODS.indexOf(p); return i>=12?PERIODS[i-12]:null; }
+
+function getMetric(period,site,subbu){
+  if(!DATA.metrics[period])return null;
+  return DATA.metrics[period][site] && DATA.metrics[period][site][subbu] || null;
+}
+
+/* ============================================================
+   UI BINDINGS
+============================================================ */
+document.querySelectorAll('[data-site]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('[data-site]').forEach(x=>x.classList.remove('on-site'));
+  b.classList.add('on-site'); STATE.site=b.dataset.site; render();
+});
+document.querySelectorAll('[data-subbu]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('[data-subbu]').forEach(x=>x.classList.remove('on-y'));
+  b.classList.add('on-y'); STATE.subbu=b.dataset.subbu; render();
+});
+document.getElementById('f-period').onchange=e=>{STATE.period=e.target.value;render()};
+document.getElementById('f-comp').onchange=e=>{STATE.comp=e.target.value;render()};
+document.getElementById('f-cur').onchange=e=>{STATE.cur=e.target.value;render()};
+
+document.getElementById('open-adv').onclick=()=>{
+  const d=document.getElementById('adv'); d.classList.toggle('on');
+  document.getElementById('open-adv').classList.toggle('on');
+};
+document.getElementById('adv-clear').onclick=()=>{
+  document.querySelectorAll('#adv select').forEach(s=>s.value='');
+  STATE.adv={}; updateAdvCount(); render();
+};
+document.getElementById('adv-apply').onclick=()=>{
+  STATE.adv={};
+  ['af-cat','af-prod','af-subseg','af-pm','af-fin','af-acq','af-iss','af-fung'].forEach(id=>{
+    const v=document.getElementById(id).value; if(v)STATE.adv[id]=v;
+  });
+  updateAdvCount(); render();
+  document.getElementById('adv').classList.remove('on');
+  document.getElementById('open-adv').classList.remove('on');
+};
+function updateAdvCount(){
+  const n=Object.keys(STATE.adv).length;
+  document.getElementById('adv-count').innerHTML = n? `<span class="adv-active">${n}</span>` : '';
+}
+
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.tabpane').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on');
+  document.getElementById('pane-'+t.dataset.tab).classList.add('on');
+  render();
+});
+
+/* ============================================================
+   CHART DEFAULTS
+============================================================ */
+Chart.register(ChartDataLabels);
+Chart.defaults.font.family='Inter';
+Chart.defaults.font.size=11;
+Chart.defaults.color='#444';
+Chart.defaults.plugins.datalabels.display=false;
+
+const TT = {
+  backgroundColor:'rgba(20,20,20,.92)', titleColor:'#FFDB00', bodyColor:'#CCC',
+  padding:8, cornerRadius:4, titleFont:{weight:'700',size:11}, bodyFont:{size:11}, displayColors:false
+};
+const GRID_X = { display:false };
+const GRID_Y = { color:'#EBEBEB', lineWidth:1, drawBorder:false };
+
+const charts = {};
+function destroyCharts(){ Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}}); }
+
+/* ============================================================
+   RENDER
+============================================================ */
+function render(){
+  const m = getMetric(STATE.period, STATE.site, STATE.subbu);
+  if(!m){return;}
+  document.getElementById('meta-period').textContent = periodLabel(STATE.period);
+  document.getElementById('meta-site').textContent = STATE.site;
+  document.getElementById('meta-subbu').textContent = STATE.subbu;
+  document.getElementById('ov-title').textContent = `Overview · ${STATE.site} · ${STATE.subbu==='ALL'?'All SubBU':STATE.subbu} · ${periodLabel(STATE.period)}`;
+  document.getElementById('ov-sub').textContent = `Real ${STATE.comp==='plan'?'vs Plan':STATE.comp==='yoy'?'vs LY':'vs Mes Anterior'} · ${STATE.cur.toUpperCase()}`;
+  document.getElementById('pnl-title').textContent = `P&L Detail · ${STATE.site} · ${STATE.subbu==='ALL'?'All SubBU':STATE.subbu} · ${periodLabel(STATE.period)}`;
+  document.getElementById('pnl-sub').textContent = `${STATE.cur.toUpperCase()} · Real ${STATE.comp==='plan'?'vs Plan':STATE.comp==='yoy'?'vs LY':'vs Mes Anterior'}`;
+
+  destroyCharts();
+  renderKPIs(m);
+  renderWaterfall(m);
+  renderVcLine();
+  renderTpvYoY();
+  renderMovers();
+  renderTpvStacked();
+  renderTpvYoY2();
+  renderTpvShare();
+  renderVcCombo();
+  renderRatioMini('vc-ntr','ntr_pct',  '#1a237e');
+  renderRatioMini('vc-proc','proc_pct','#1a237e');
+  renderRatioMini('vc-fc','fin_cost_pct','#E53935');
+  renderEffects(m);
+  renderEffMix();
+  renderEffBubble();
+  renderPnLTable();
+}
+
+function renderKPIs(m){
+  const cmp = comparator();
+  const dTpv = m.tpv_usd - (cmp.tpv||m.tpv_usd);
+  const dVc = m.vc_usd - (cmp.vc||m.vc_usd);
+  const dVcPct = m.vc_pct - (cmp.vc_pct||m.vc_pct);
+  const dEcoPct = m.eco_vc_pct - (cmp.eco_vc_pct||m.eco_vc_pct);
+  const dNtrPct = m.ntr_pct - (cmp.ntr_pct||m.ntr_pct);
+  const dPlanVc = m.vc_usd - m.plan_vc;
+  const tiles = [
+    {cls:'kbk',l:'TPV USD',v:fmtUsd(m.tpv_usd),d:fmtSign(dTpv)+' '+cmp.label,du:dTpv>0},
+    {cls:'',   l:'VC USD',v:fmtUsd(m.vc_usd),d:fmtSign(dVc)+' '+cmp.label,du:dVc>0},
+    {cls:'kp', l:'VC %',v:fmtPct(m.vc_pct,2),d:fmtPp(dVcPct)+' '+cmp.label,du:dVcPct>0},
+    {cls:'ky', l:'Eco VC %',v:fmtPct(m.eco_vc_pct,2),d:fmtPp(dEcoPct)+' '+cmp.label,du:dEcoPct>0},
+    {cls:'',   l:'NTR %',v:fmtPct(m.ntr_pct,2),d:fmtPp(dNtrPct)+' '+cmp.label,du:dNtrPct>0},
+    {cls:dPlanVc>=0?'kp':'kn',l:'Δ vs Plan',v:fmtSign(dPlanVc),d:fmtPct(dPlanVc/m.plan_vc),du:dPlanVc>0},
+  ];
+  document.getElementById('ov-kpis').innerHTML = tiles.map(t=>`
+    <div class="kpi ${t.cls}">
+      <div class="kl">${t.l}</div>
+      <div class="kv">${t.v}</div>
+      <div class="kd ${t.du?'up':'dn'}">${t.d}</div>
+    </div>`).join('');
+}
+function comparator(){
+  if(STATE.comp==='plan'){
+    const m=getMetric(STATE.period,STATE.site,STATE.subbu);
+    return {tpv:m?.plan_tpv,vc:m?.plan_vc,vc_pct:m?.plan_vc_pct,eco_vc_pct:m?.plan_vc_pct-0.008,ntr_pct:m?.ntr_pct-0.005,label:'vs Plan'};
+  }
+  if(STATE.comp==='yoy'){const ly=lyPeriod(STATE.period);const lm=ly?getMetric(ly,STATE.site,STATE.subbu):null;return {tpv:lm?.tpv_usd,vc:lm?.vc_usd,vc_pct:lm?.vc_pct,eco_vc_pct:lm?.eco_vc_pct,ntr_pct:lm?.ntr_pct,label:'YoY'};}
+  const pm=prevPeriod(STATE.period);const pmM=pm?getMetric(pm,STATE.site,STATE.subbu):null;
+  return {tpv:pmM?.tpv_usd,vc:pmM?.vc_usd,vc_pct:pmM?.vc_pct,eco_vc_pct:pmM?.eco_vc_pct,ntr_pct:pmM?.ntr_pct,label:'MoM'};
+}
+
+function renderWaterfall(m){
+  const dPlan = m.vc_usd - m.plan_vc;
+  // mock decomposition
+  const vol  = dPlan*0.45;
+  const rate = dPlan*0.30;
+  const mix  = dPlan*0.15;
+  const fx   = dPlan*0.07;
+  const unex = dPlan - vol - rate - mix - fx;
+  document.getElementById('wf').innerHTML = `
+    <div class="wfc plan"><div class="wfv">${fmtUsd(m.plan_vc)}</div><div class="wfl">Plan VC</div></div>
+    <div class="wfc ${vol>=0?'pos':'neg'}"><div class="wfv">${fmtSign(vol)}</div><div class="wfl">Volumen</div></div>
+    <div class="wfc ${rate>=0?'pos':'neg'}"><div class="wfv">${fmtSign(rate)}</div><div class="wfl">Rate</div></div>
+    <div class="wfc ${mix>=0?'pos':'neg'}"><div class="wfv">${fmtSign(mix)}</div><div class="wfl">Mix</div></div>
+    <div class="wfc ${fx>=0?'pos':'neg'}"><div class="wfv">${fmtSign(fx)}</div><div class="wfl">FX</div></div>
+    <div class="wfc ${unex>=0?'pos':'neg'}"><div class="wfv">${fmtSign(unex)}</div><div class="wfl">No Explic.</div></div>
+    <div class="wfc real"><div class="wfv">${fmtUsd(m.vc_usd)}</div><div class="wfl">Real VC</div></div>`;
+}
+
+function renderEffects(m){
+  const dPlan = m.vc_usd - m.plan_vc;
+  const vol=dPlan*0.45, rate=dPlan*0.30, mix=dPlan*0.15, fx=dPlan*0.07;
+  const unex = dPlan - vol - rate - mix - fx;
+  document.getElementById('wf-eff').innerHTML = `
+    <div class="wfc plan"><div class="wfv">${fmtUsd(m.plan_vc)}</div><div class="wfl">Plan VC</div></div>
+    <div class="wfc ${vol>=0?'pos':'neg'}"><div class="wfv">${fmtSign(vol)}</div><div class="wfl">Volumen</div></div>
+    <div class="wfc ${rate>=0?'pos':'neg'}"><div class="wfv">${fmtSign(rate)}</div><div class="wfl">Rate</div></div>
+    <div class="wfc ${mix>=0?'pos':'neg'}"><div class="wfv">${fmtSign(mix)}</div><div class="wfl">Mix</div></div>
+    <div class="wfc ${fx>=0?'pos':'neg'}"><div class="wfv">${fmtSign(fx)}</div><div class="wfl">FX</div></div>
+    <div class="wfc ${unex>=0?'pos':'neg'}"><div class="wfv">${fmtSign(unex)}</div><div class="wfl">No Explic.</div></div>
+    <div class="wfc real"><div class="wfv">${fmtUsd(m.vc_usd)}</div><div class="wfl">Real VC</div></div>`;
+}
+
+function renderVcLine(){
+  const last12 = PERIODS.slice(Math.max(0,PERIODS.indexOf(STATE.period)-11), PERIODS.indexOf(STATE.period)+1);
+  const real = last12.map(p=>{const x=getMetric(p,STATE.site,STATE.subbu);return x?+(x.vc_pct*100).toFixed(2):null});
+  const plan = last12.map(p=>{const x=getMetric(p,STATE.site,STATE.subbu);return x?+(x.plan_vc_pct*100).toFixed(2):null});
+  charts.vcLine = new Chart(document.getElementById('ov-vc-line'),{
+    type:'line',
+    data:{labels:last12.map(periodLabel),datasets:[
+      {label:'VC% Real',data:real,borderColor:'#1a237e',backgroundColor:'#1a237e',borderWidth:2.5,pointRadius:3.5,tension:.25},
+      {label:'VC% Plan',data:plan,borderColor:'#E53935',borderDash:[5,4],borderWidth:1.5,pointStyle:false,tension:.25}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}},tooltip:TT,datalabels:{display:false}},
+      scales:{x:{grid:GRID_X,ticks:{font:{size:10},color:'#999'}},y:{grid:GRID_Y,ticks:{font:{size:10},color:'#999',callback:v=>v.toFixed(1)+'%'}}}}
+  });
+}
+
+function renderTpvYoY(){
+  const last12 = PERIODS.slice(Math.max(0,PERIODS.indexOf(STATE.period)-11), PERIODS.indexOf(STATE.period)+1);
+  const yoy = last12.map(p=>{const ly=lyPeriod(p);const cur=getMetric(p,STATE.site,STATE.subbu);const lyM=ly?getMetric(ly,STATE.site,STATE.subbu):null;return cur&&lyM?+((cur.tpv_usd/lyM.tpv_usd-1)*100).toFixed(1):null});
+  const tpv = last12.map(p=>{const x=getMetric(p,STATE.site,STATE.subbu);return x?+(x.tpv_usd/1e6).toFixed(0):0});
+  charts.tpvYoY = new Chart(document.getElementById('ov-tpv-yoy'),{
+    data:{labels:last12.map(periodLabel),datasets:[
+      {type:'bar',label:'TPV USD M',data:tpv,backgroundColor:tpv.map((_,i)=>i===tpv.length-1?'#FFDB00':'#C7C7C7'),yAxisID:'y',borderRadius:2,
+        datalabels:{display:ctx=>ctx.dataIndex===tpv.length-1,anchor:'end',align:'top',font:{size:11,weight:800},color:'#1A1A1A',formatter:v=>v+'M'}},
+      {type:'line',label:'YoY %',data:yoy,borderColor:'#1a237e',backgroundColor:'#1a237e',borderWidth:2.5,pointRadius:3.5,yAxisID:'y1',tension:.25}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}},tooltip:TT,datalabels:{display:false}},
+      scales:{x:{grid:GRID_X,ticks:{font:{size:9},color:'#999'}},
+        y:{grid:GRID_Y,ticks:{font:{size:10},color:'#999',callback:v=>v+'M'}},
+        y1:{position:'right',grid:{display:false},ticks:{font:{size:10},color:'#1a237e',callback:v=>v.toFixed(0)+'%'}}}}
+  });
+}
+
+function renderMovers(){
+  const cur = STATE.period;
+  const movers = SITES.map(s=>{
+    const m=getMetric(cur,s,STATE.subbu);
+    if(!m)return null;
+    return {site:s,delta:m.vc_usd - m.plan_vc};
+  }).filter(Boolean).sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta));
+  const max = Math.max(...movers.map(x=>Math.abs(x.delta)),1);
+  document.getElementById('ov-movers').innerHTML = movers.map(m=>{
+    const w = (Math.abs(m.delta)/max)*100;
+    return `<div class="rank-row">
+      <div class="lab">${m.site}</div>
+      <div class="bar ${m.delta>=0?'pos':'neg'}"><div style="width:${w}%"></div></div>
+      <div class="val ${m.delta>=0?'pos':'neg'}">${fmtSign(m.delta)}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTpvStacked(){
+  const last13 = PERIODS.slice(Math.max(0,PERIODS.indexOf(STATE.period)-12), PERIODS.indexOf(STATE.period)+1);
+  const series = SUBBUS.map(sb=>last13.map(p=>{const x=getMetric(p,STATE.site,sb);return x?+(x.tpv_usd/1e6).toFixed(0):0}));
+  charts.tpvStack = new Chart(document.getElementById('tpv-stacked'),{
+    type:'bar',
+    data:{labels:last13.map(periodLabel),datasets:[
+      {label:'Longtail',data:series[2],backgroundColor:'#C7C7C7',stack:'a',borderRadius:0},
+      {label:'SMB',data:series[1],backgroundColor:'#444',stack:'a',borderRadius:0},
+      {label:'BS',data:series[0],backgroundColor:'#FFDB00',stack:'a',borderRadius:2,
+        datalabels:{display:ctx=>ctx.dataIndex===last13.length-1,anchor:'end',align:'top',font:{size:11,weight:800},color:'#1A1A1A',formatter:(v,ctx)=>{
+          const i=ctx.dataIndex;const total=series[0][i]+series[1][i]+series[2][i];return total+'M';
+        }}}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}},tooltip:TT,datalabels:{display:false}},
+      scales:{x:{stacked:true,grid:GRID_X,ticks:{font:{size:9},color:'#999'}},
+        y:{stacked:true,grid:GRID_Y,ticks:{font:{size:10},color:'#999',callback:v=>v+'M'}}}}
+  });
+}
+
+function renderTpvYoY2(){
+  const last12 = PERIODS.slice(Math.max(0,PERIODS.indexOf(STATE.period)-11), PERIODS.indexOf(STATE.period)+1);
+  const real = last12.map(p=>{const ly=lyPeriod(p);const cur=getMetric(p,STATE.site,STATE.subbu);const lyM=ly?getMetric(ly,STATE.site,STATE.subbu):null;return cur&&lyM?+((cur.tpv_usd/lyM.tpv_usd-1)*100).toFixed(1):null});
+  const plan = last12.map((_,i)=>+(20+Math.sin(i/2)*4).toFixed(1));
+  charts.tpvYoY2 = new Chart(document.getElementById('tpv-yoy2'),{
+    type:'line',
+    data:{labels:last12.map(periodLabel),datasets:[
+      {label:'YoY% Real',data:real,borderColor:'#1a237e',borderWidth:2.5,pointRadius:3.5,tension:.25},
+      {label:'YoY% Plan',data:plan,borderColor:'#E53935',borderDash:[5,4],borderWidth:1.5,pointStyle:false,tension:.25}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}},tooltip:TT,datalabels:{display:false}},
+      scales:{x:{grid:GRID_X,ticks:{font:{size:10},color:'#999'}},y:{grid:GRID_Y,ticks:{font:{size:10},color:'#999',callback:v=>v+'%'}}}}
+  });
+}
+
+function renderTpvShare(){
+  const arr = SITES.map(s=>{const m=getMetric(STATE.period,s,STATE.subbu);return m?{site:s,tpv:m.tpv_usd}:null}).filter(Boolean);
+  const total = arr.reduce((a,b)=>a+b.tpv,0);
+  arr.forEach(x=>x.share=x.tpv/total);
+  arr.sort((a,b)=>b.share-a.share);
+  const max = Math.max(...arr.map(x=>x.share));
+  document.getElementById('tpv-share').innerHTML = arr.map(m=>{
+    const w=(m.share/max)*100;
+    return `<div class="rank-row"><div class="lab">${m.site}</div><div class="bar pos"><div style="width:${w}%;background:#FFDB00"></div></div><div class="val">${fmtPct(m.share,1)}</div></div>`;
+  }).join('');
+}
+
+function renderVcCombo(){
+  const last13 = PERIODS.slice(Math.max(0,PERIODS.indexOf(STATE.period)-12), PERIODS.indexOf(STATE.period)+1);
+  const vcUsd = last13.map(p=>{const x=getMetric(p,STATE.site,STATE.subbu);return x?+(x.vc_usd/1e6).toFixed(1):0});
+  const vcReal = last13.map(p=>{const x=getMetric(p,STATE.site,STATE.subbu);return x?+(x.vc_pct*100).toFixed(2):null});
+  const vcPlan = last13.map(p=>{const x=getMetric(p,STATE.site,STATE.subbu);return x?+(x.plan_vc_pct*100).toFixed(2):null});
+  charts.vcCombo = new Chart(document.getElementById('vc-combo'),{
+    data:{labels:last13.map(periodLabel),datasets:[
+      {type:'bar',label:'VC USD',data:vcUsd,backgroundColor:vcUsd.map((_,i)=>i===vcUsd.length-1?'#FFDB00':'#C7C7C7'),yAxisID:'y',borderRadius:2,
+        datalabels:{display:ctx=>ctx.dataIndex===vcUsd.length-1,anchor:'end',align:'top',font:{size:11,weight:800},color:'#1A1A1A',formatter:v=>v+'M'}},
+      {type:'line',label:'VC% Real',data:vcReal,borderColor:'#1a237e',borderWidth:2.5,pointRadius:3.5,yAxisID:'y1',tension:.25},
+      {type:'line',label:'VC% Plan',data:vcPlan,borderColor:'#E53935',borderDash:[5,4],borderWidth:1.5,pointStyle:false,yAxisID:'y1',tension:.25}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}},tooltip:TT,datalabels:{display:false}},
+      scales:{x:{grid:GRID_X,ticks:{font:{size:9},color:'#999'}},
+        y:{grid:GRID_Y,ticks:{font:{size:10},color:'#999',callback:v=>v+'M'}},
+        y1:{position:'right',grid:{display:false},ticks:{font:{size:10},color:'#1a237e',callback:v=>v.toFixed(1)+'%'}}}}
+  });
+}
+
+function renderRatioMini(canvasId,key,color){
+  const last12 = PERIODS.slice(Math.max(0,PERIODS.indexOf(STATE.period)-11), PERIODS.indexOf(STATE.period)+1);
+  const data = last12.map(p=>{const x=getMetric(p,STATE.site,STATE.subbu);return x?+(x[key]*100).toFixed(2):null});
+  charts[canvasId] = new Chart(document.getElementById(canvasId),{
+    type:'line',
+    data:{labels:last12.map(periodLabel),datasets:[{data,borderColor:color,backgroundColor:color,borderWidth:2.5,pointRadius:3,tension:.25,fill:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:TT,datalabels:{display:false}},
+      scales:{x:{grid:GRID_X,ticks:{font:{size:9},color:'#999'}},y:{grid:GRID_Y,ticks:{font:{size:9},color:'#999',callback:v=>v.toFixed(2)+'%'}}}}
+  });
+}
+
+function renderEffMix(){
+  const dims = [
+    {name:'Cuotas',value:0.32},
+    {name:'MOP',value:-0.18},
+    {name:'Segmento',value:0.21},
+    {name:'Industria',value:-0.07},
+    {name:'Issuer',value:0.04},
+    {name:'Acquirer',value:-0.11}
+  ];
+  const max = Math.max(...dims.map(x=>Math.abs(x.value)));
+  const m = getMetric(STATE.period,STATE.site,STATE.subbu);
+  const scale = m ? m.vc_usd*0.05 : 1e6;
+  document.getElementById('eff-mix').innerHTML = dims.map(d=>{
+    const usd = d.value*scale;
+    const w = (Math.abs(d.value)/max)*100;
+    return `<div class="rank-row"><div class="lab">${d.name}</div><div class="bar ${d.value>=0?'pos':'neg'}"><div style="width:${w}%"></div></div><div class="val ${d.value>=0?'pos':'neg'}">${fmtSign(usd)}</div></div>`;
+  }).join('');
+}
+
+function renderEffBubble(){
+  const points = SITES.map(s=>{
+    const m = getMetric(STATE.period,s,STATE.subbu);
+    const pm = prevPeriod(STATE.period); const pmM = pm?getMetric(pm,s,STATE.subbu):null;
+    if(!m||!pmM)return null;
+    const dVol = (m.tpv_usd-pmM.tpv_usd)/1e6;
+    const dRate = (m.vc_pct-pmM.vc_pct)*100;
+    return {x:dVol,y:dRate,r:Math.max(6,Math.sqrt(m.tpv_usd/1e6)),label:s};
+  }).filter(Boolean);
+  charts.bubble = new Chart(document.getElementById('eff-bubble'),{
+    type:'bubble',
+    data:{datasets:[{data:points,backgroundColor:'rgba(255,219,0,.6)',borderColor:'#1A1A1A',borderWidth:1.5}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>`${c.raw.label}: ΔTPV=${c.raw.x.toFixed(1)}M ΔVC%=${c.raw.y.toFixed(2)}pp`}},
+        datalabels:{display:true,color:'#1A1A1A',font:{weight:700,size:10},formatter:c=>c.label}},
+      scales:{x:{grid:GRID_Y,title:{display:true,text:'Δ TPV (M USD)',font:{size:10}},ticks:{font:{size:10},color:'#999'}},
+        y:{grid:GRID_Y,title:{display:true,text:'Δ VC% (pp)',font:{size:10}},ticks:{font:{size:10},color:'#999'}}}}
+  });
+}
+
+function renderPnLTable(){
+  const m = getMetric(STATE.period,STATE.site,STATE.subbu);
+  if(!m)return;
+  const lines = DATA.pnl[STATE.period][STATE.site][STATE.subbu];
+  const cmp = comparator();
+  const tbl = document.getElementById('pnl-table');
+  tbl.querySelector('thead').innerHTML = `<tr>
+    <th style="text-align:left">P&L Line</th>
+    <th>USD</th>
+    <th>%TPV</th>
+    <th>Plan USD</th>
+    <th>Δ vs Plan</th>
+    <th>Δ% Plan</th>
+    <th>${cmp.label}</th>
+  </tr>`;
+  tbl.querySelector('tbody').innerHTML = lines.map(([name,val,pct,plan,kind])=>{
+    const cls = kind==='total'?'total':kind==='sub'||kind==='eco'?'subtotal':'indent';
+    const dPlan = val-plan;
+    const dPlanPct = plan?dPlan/Math.abs(plan):0;
+    return `<tr class="${cls}">
+      <td>${name}</td>
+      <td>${fmtUsd(val)}</td>
+      <td>${pct!=null?fmtPct(pct,2):'–'}</td>
+      <td class="muted">${fmtUsd(plan)}</td>
+      <td class="num ${dPlan>=0?'pos':'neg'}">${fmtSign(dPlan)}</td>
+      <td class="num ${dPlanPct>=0?'pos':'neg'}">${fmtPct(dPlanPct,1)}</td>
+      <td class="muted">${cmp.label}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ============================================================
+   BOOT
+============================================================ */
+render();
+</script>
+</body>
+</html>
