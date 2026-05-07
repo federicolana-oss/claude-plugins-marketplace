@@ -1,0 +1,53 @@
+==============================================================
+OP P&L · Grid automation · setup
+==============================================================
+
+Pre-requisitos en tu máquina (Windows):
+  1. VPN corporativa MELI activa (auth se hace por edge IP)
+  2. Python 3.11+ en PATH
+  3. pip install requests python-dotenv
+  4. Plugin grid-sharing 3.6.2+ en tu Claude Code (provee skill grid-skill)
+
+Setup inicial (una sola vez):
+  1. cd analytics/op_pnl/automation
+  2. copy .env.example .env
+  3. Editar .env: confirmar DOC_ID y SHARE_WITH
+  4. Ejecutar manual:  python grid_upload.py
+     - Si responde [OK] file_replaced → listo
+     - Si 401 → reconectar VPN
+     - Si 403 → el owner debe agregarte como EDITOR (no viewer)
+
+Schedule diario (PowerShell, una vez):
+
+  $action = New-ScheduledTaskAction -Execute "C:\ruta\refresh_dashboard.bat"
+  $trigger = New-ScheduledTaskTrigger -Daily -At 8am
+  $settings = New-ScheduledTaskSettingsSet `
+      -StartWhenAvailable `
+      -DontStopIfGoingOnBatteries `
+      -AllowStartIfOnBatteries
+  Register-ScheduledTask -TaskName "OPPnL-Refresh" `
+      -Action $action -Trigger $trigger -Settings $settings
+
+  $hcAction  = New-ScheduledTaskAction -Execute "C:\ruta\health_check.bat"
+  $hcTrigger = New-ScheduledTaskTrigger -Daily -At 8:30am
+  Register-ScheduledTask -TaskName "OPPnL-HealthCheck" `
+      -Action $hcAction -Trigger $hcTrigger -Settings $settings
+
+Workflow:
+  - Yo (Claude) genero/actualizo analytics/op_pnl/grid/op_pnl_dashboard_v7.html
+  - Tu .bat hace git pull + grid_upload.py
+  - Health check valida 30 min después y avisa por Slack si rompe
+
+Troubleshooting:
+  401 unauthorized      → VPN MELI caída
+  403 forbidden         → owner debe darte rol editor
+  connection timeout    → script ya tiene 4 retries con backoff
+  version no cambia     → es esperado: el endpoint reemplaza in-place
+                          mirá el log [OK] file_replaced
+  task scheduler skip   → -StartWhenAvailable ya está, no toques
+
+Para crear un doc nuevo desde cero (en vez de actualizar 01KQZ8...):
+  - Editar .env: comentar/borrar la línea DOC_ID
+  - Correr:  python grid_upload.py
+  - La respuesta JSON trae un nuevo doc_id, copialo a .env
+==============================================================
