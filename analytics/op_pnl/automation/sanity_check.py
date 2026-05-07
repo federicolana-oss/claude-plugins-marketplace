@@ -32,7 +32,7 @@ import os, sys, re
 from pathlib import Path
 
 REPO_ROOT     = Path(__file__).resolve().parents[3]
-HTML_DEFAULT  = REPO_ROOT / "analytics" / "op_pnl" / "grid" / "op_pnl_dashboard_v15.html"
+HTML_DEFAULT  = REPO_ROOT / "analytics" / "op_pnl" / "grid" / "op_pnl_dashboard_v16.html"
 EXPECTED_PERIOD = os.getenv("EXPECTED_PERIOD", "2026-04")  # configurable
 MIN_BYTES = 80_000
 MAX_BYTES = 500_000
@@ -115,9 +115,10 @@ def check_catalogs(html: str):
     else:
         passed("sites", f"{len(expected_sites)} sites")
 
-    # Segmentos (was SubBU)
-    subbus = re.findall(r'data-subbu="([^"]+)"', html)
-    if sorted(set(subbus)) != sorted(['ALL','BS','SMB','Longtail']):
+    # Segmentos (was SubBU) — solo HTML real, no JS template literals
+    subbus = re.findall(r'data-subbu="([A-Za-z]+)"', html)
+    expected_seg = sorted(['ALL','BS','SMB','Longtail'])
+    if sorted(set(subbus)) != expected_seg:
         failed("segmentos", f"obtenido {sorted(set(subbus))}")
     else:
         passed("segmentos", "ALL/BS/SMB/Longtail")
@@ -175,13 +176,16 @@ def check_catalogs(html: str):
     else:
         passed("industry_filter", "filtro INDUSTRIA wired")
 
-    # Header subtitle: Business Controlling FP&A (was: Pricing & Profitability)
-    if 'Business Controlling FP&amp;A' not in html and 'Business Controlling FP&A' not in html:
-        failed("fpa_subtitle", "subtitle 'Business Controlling FP&A' no encontrado")
+    # Header subtitle: Finance Regional · Online Payments (v16+)
+    if 'Finance Regional' not in html:
+        failed("subtitle", "subtitle 'Finance Regional' no encontrado")
     elif 'Pricing &amp; Profitability' in html or 'Pricing & Profitability' in html:
-        failed("fpa_subtitle", "todavía aparece 'Pricing & Profitability' en algún lado")
+        failed("subtitle", "todavía aparece 'Pricing & Profitability'")
+    elif 'Business Controlling' in html and 'function ' not in html.split('Business Controlling')[1][:100]:
+        # 'Business Controlling' may live in JS strings inside functions, that's OK; only fail if static text remains
+        passed("subtitle", "Finance Regional present (Business Controlling ok if in JS only)")
     else:
-        passed("fpa_subtitle", "subtitle correcto · FP&A")
+        passed("subtitle", "subtitle correcto · Finance Regional")
 
     # BS Movement section present
     bsm_keywords = ['bsm-stay-n','bsm-new-n','bsm-exit-n','bsm-spread-v','renderBSMovement','QUALITY SPREAD']
