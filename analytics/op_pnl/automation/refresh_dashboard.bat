@@ -42,13 +42,22 @@ if errorlevel 1 (
 )
 cd "%~dp0"
 
-REM === 2. Upload latest HTML to Grid ===
-echo [step 2/2] uploading to Grid >> "%LOG%"
+REM === 2. Sanity check ===
+echo [step 2/3] sanity check >> "%LOG%"
+python sanity_check.py >> "%LOG%" 2>&1
+if errorlevel 1 (
+    echo [ERROR] sanity_check failed - aborting upload >> "%LOG%"
+    type "%LOG%"
+    exit /b 2
+)
+
+REM === 3. Upload latest HTML to Grid ===
+echo [step 3/3] uploading to Grid >> "%LOG%"
 python grid_upload.py >> "%LOG%" 2>&1
 if errorlevel 1 (
     echo [ERROR] grid_upload failed >> "%LOG%"
     type "%LOG%"
-    exit /b 2
+    exit /b 3
 )
 
 echo [%date% %time%] DONE >> "%LOG%"
