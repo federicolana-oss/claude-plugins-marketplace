@@ -36,7 +36,7 @@ except ImportError:
     pass
 
 REPO_ROOT      = Path(__file__).resolve().parents[3]
-HTML_DEFAULT   = REPO_ROOT / "analytics" / "op_pnl" / "grid" / "op_pnl_dashboard_v9.html"
+HTML_DEFAULT   = REPO_ROOT / "analytics" / "op_pnl" / "grid" / "op_pnl_dashboard_v10.html"
 DOC_ID         = os.getenv("DOC_ID",         "01KQZ8ZQHYRPD8ARVFGJ157E9B")
 GRID_API       = os.getenv("GRID_API",       "https://grid.melioffice.com/api/v1/engine/run")
 SKILL_VERSION  = os.getenv("SKILL_VERSION",  "3.6.2")

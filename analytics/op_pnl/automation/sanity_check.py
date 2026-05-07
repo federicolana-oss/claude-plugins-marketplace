@@ -32,7 +32,7 @@ import os, sys, re
 from pathlib import Path
 
 REPO_ROOT     = Path(__file__).resolve().parents[3]
-HTML_DEFAULT  = REPO_ROOT / "analytics" / "op_pnl" / "grid" / "op_pnl_dashboard_v9.html"
+HTML_DEFAULT  = REPO_ROOT / "analytics" / "op_pnl" / "grid" / "op_pnl_dashboard_v10.html"
 EXPECTED_PERIOD = os.getenv("EXPECTED_PERIOD", "2026-04")  # configurable
 MIN_BYTES = 80_000
 MAX_BYTES = 500_000
@@ -109,12 +109,18 @@ def check_catalogs(html: str):
     else:
         passed("sites", f"{len(expected_sites)} sites")
 
-    # SubBUs
+    # Segmentos (was SubBU)
     subbus = re.findall(r'data-subbu="([^"]+)"', html)
     if sorted(set(subbus)) != sorted(['ALL','BS','SMB','Longtail']):
-        failed("subbus", f"obtenido {sorted(set(subbus))}")
+        failed("segmentos", f"obtenido {sorted(set(subbus))}")
     else:
-        passed("subbus", "ALL/BS/SMB/Longtail")
+        passed("segmentos", "ALL/BS/SMB/Longtail")
+
+    # SubBU label should be Segmento now
+    if 'ALL SubBU' in html or '>SubBU<' in html:
+        failed("segmento_renamed", "todavía hay 'SubBU' en UI (debería ser 'Segmento')")
+    else:
+        passed("segmento_renamed", "renombrado correctamente")
 
     # No Point ni QR
     if "Point" in html and re.search(r'\bPoint\s+(Total|TOTAL)', html):
@@ -130,6 +136,20 @@ def check_catalogs(html: str):
         failed("friendly_labels", f"faltan: {missing}")
     else:
         passed("friendly_labels", "8/8 filtros con labels amigables")
+
+    # Categoria Plan OP must contain Farming/Hunting (not Cards/AM)
+    if 'Big Sellers Farming' not in html or 'Big Sellers Hunting' not in html:
+        failed("categoria_plan_op", "valores Farming/Hunting no encontrados")
+    elif '>Cards<' in html and 'option>Cards' in html:
+        failed("categoria_plan_op", "todavía está 'Cards' en CATEGORIA_PLAN_OP (debería ser Farming/Hunting)")
+    else:
+        passed("categoria_plan_op", "Farming/Hunting/etc")
+
+    # Logo MP
+    if 'logo-mp' in html and 'mercado' in html.lower():
+        passed("logo_mp", "logo Mercado Pago presente")
+    else:
+        failed("logo_mp", "logo MP no encontrado")
 
 
 def check_js_functions(html: str):
