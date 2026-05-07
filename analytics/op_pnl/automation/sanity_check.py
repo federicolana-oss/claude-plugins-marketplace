@@ -32,7 +32,7 @@ import os, sys, re
 from pathlib import Path
 
 REPO_ROOT     = Path(__file__).resolve().parents[3]
-HTML_DEFAULT  = REPO_ROOT / "analytics" / "op_pnl" / "grid" / "op_pnl_dashboard_v14.html"
+HTML_DEFAULT  = REPO_ROOT / "analytics" / "op_pnl" / "grid" / "op_pnl_dashboard_v15.html"
 EXPECTED_PERIOD = os.getenv("EXPECTED_PERIOD", "2026-04")  # configurable
 MIN_BYTES = 80_000
 MAX_BYTES = 500_000
@@ -197,9 +197,11 @@ def check_catalogs(html: str):
     else:
         failed("responsive", "no se encontraron media queries de responsive")
 
-    # Logo MP
-    if 'logo-mp' in html and 'mercado' in html.lower():
-        passed("logo_mp", "logo Mercado Pago presente")
+    # Logo MP — usa el PNG oficial (matchea referente Acquiring KPI)
+    if 'mp-brand' in html and 'mp-logo-img' in html and 'data:image/png;base64,iVBOR' in html:
+        passed("logo_mp", "logo Mercado Pago oficial PNG (matchea referente)")
+    elif 'logo-mp' in html or 'mercado' in html.lower():
+        failed("logo_mp", "logo encontrado pero NO es el PNG oficial (debe usar mp-brand + mp-logo-img + base64)")
     else:
         failed("logo_mp", "logo MP no encontrado")
 
