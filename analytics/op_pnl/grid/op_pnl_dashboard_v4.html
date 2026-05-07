@@ -78,6 +78,11 @@ select.fbtn{-webkit-appearance:none;appearance:none;padding-right:20px;backgroun
 
 /* CARDS GRID 3-up */
 .cards3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.cards3.c2{grid-template-columns:1fr 1fr}
+.cards3.c4{grid-template-columns:1fr 1fr 1fr 1fr}
+.bd-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#fff;border:1px solid var(--br);border-radius:6px;padding:8px 10px;margin:8px 0 4px}
+.bd-bar .bd-lbl{font:700 9px 'Inter';letter-spacing:.7px;color:var(--t3);text-transform:uppercase;margin-right:6px}
+.bd-bar .fbtn.on-bd{background:var(--navy);color:#fff;border-color:var(--navy)}
 .card{background:#fff;border:1px solid var(--br);border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.04);overflow:hidden}
 .card-h{background:#fff;padding:9px 12px;border-bottom:2px solid var(--y);font:700 11.5px 'Inter';letter-spacing:.4px;color:var(--tx)}
 
@@ -378,8 +383,26 @@ table.tx tbody tr:hover{background:#FAFAFA}
     <div class="sectitle" id="kpi-title">RESUMEN <b id="kpi-scope">ALL</b> · <b id="kpi-period">MAR 2026</b></div>
     <div class="kpi-row" id="kpi-row"></div>
 
-    <div class="sectitle">P&amp;L POR PRODUCTO · <b id="pnl-period">MAR 2026</b></div>
-    <div class="cards3" id="cards3"></div>
+    <!-- Tabla scope completo (siempre presente, refleja todos los filtros) -->
+    <div class="sectitle">P&amp;L · SCOPE COMPLETO · <b id="pnl-period">MAR 2026</b></div>
+    <div id="pnl-scope-card"></div>
+
+    <!-- Breakdown selector + grid de tablas dinámicas -->
+    <div class="bd-bar">
+      <span class="bd-lbl">Desagregar por:</span>
+      <button class="fbtn on-bd" data-bd="subbu">SubBU</button>
+      <button class="fbtn" data-bd="prod">Producto</button>
+      <button class="fbtn" data-bd="fin">Cuotas</button>
+      <button class="fbtn" data-bd="pm">Medio de Pago</button>
+      <button class="fbtn" data-bd="cat">Categoría Plan</button>
+      <button class="fbtn" data-bd="acq">Adquirente</button>
+      <button class="fbtn" data-bd="iss">Emisor</button>
+      <button class="fbtn" data-bd="subseg">Subsegmento</button>
+      <button class="fbtn" data-bd="fung">Fungible</button>
+      <button class="fbtn" data-bd="site">Site</button>
+    </div>
+    <div class="sectitle"><b id="bd-title">P&L · DESAGREGADO POR SUBBU</b></div>
+    <div id="cards-grid" class="cards3"></div>
 
     <div class="sectitle">WALK PLAN → REAL · VC USD</div>
     <div class="card"><div class="card-h" style="border-bottom-color:var(--br)">Descomposición ΔVC vs Plan</div>
@@ -530,7 +553,7 @@ PERIODS.forEach(p=>{
 /* ============================================================
    STATE
 ============================================================ */
-const STATE = { period:'2026-03', site:'ALL', subbu:'ALL', cur:'usd', cut:'industry', adv:{} };
+const STATE = { period:'2026-03', site:'ALL', subbu:'ALL', cur:'usd', cut:'industry', bd:'subbu', adv:{} };
 
 /* ============================================================
    FORMATTERS
@@ -672,6 +695,10 @@ document.querySelectorAll('[data-subbu]').forEach(b=>b.onclick=()=>{
 document.querySelectorAll('[data-cut]').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('[data-cut]').forEach(x=>x.classList.remove('on-site'));
   b.classList.add('on-site');STATE.cut=b.dataset.cut;renderIE();
+});
+document.querySelectorAll('[data-bd]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('[data-bd]').forEach(x=>x.classList.remove('on-bd'));
+  b.classList.add('on-bd');STATE.bd=b.dataset.bd;renderCards();
 });
 document.getElementById('f-period').onchange=e=>{STATE.period=e.target.value;render()};
 document.getElementById('f-cur').onchange=e=>{STATE.cur=e.target.value;render()};
@@ -824,27 +851,76 @@ function renderKPIs(){
 
 /* 3 cards: OP TOTAL · CHECKOUT (PRO+API) · LINK DE PAGO */
 function renderCards(){
-  const cards = [
-    {title:'OP TOTAL',     productKey:'ALL',          desc:'Todos los productos OP'},
-    {title:'CHECKOUT',     productKey:'Checkout Pro', desc:'Checkout Pro + API'},
-    {title:'LINK DE PAGO', productKey:'Link de Pago', desc:'Link · Subscriptions · Marketplace'}
-  ];
-  document.getElementById('cards3').innerHTML = cards.map(c => renderPnLCard(c)).join('');
+  // 1) Scope completo (refleja todos los filtros activos)
+  const scopeCard = {title:'SCOPE COMPLETO · TODOS LOS FILTROS APLICADOS', productKey:'ALL', desc:'', mode:'scope'};
+  document.getElementById('pnl-scope-card').innerHTML = renderPnLCard(scopeCard);
+
+  // 2) Breakdown dinámico
+  const bd = STATE.bd || 'subbu';
+  const cardsHost = document.getElementById('cards-grid');
+  const titleEl = document.getElementById('bd-title');
+  const labels = {subbu:'SubBU', prod:'Producto', fin:'Cuotas', pm:'Medio de Pago', cat:'Categoría Plan', acq:'Adquirente', iss:'Emisor', subseg:'Subsegmento', fung:'Fungible', site:'Site'};
+  titleEl.textContent = `P&L · DESAGREGADO POR ${(labels[bd]||bd).toUpperCase()}`;
+
+  let items = [];
+  if(bd==='subbu')      items = ['BS','SMB','Longtail'];
+  else if(bd==='prod')  items = PRODUCTS;
+  else if(bd==='site')  items = SITES;
+  else if(DIM_FACTORS[bd]) items = Object.keys(DIM_FACTORS[bd]);
+
+  // Layout: 2/3/4 columns based on count
+  cardsHost.classList.remove('c2','c4');
+  if(items.length<=2) cardsHost.classList.add('c2');
+  else if(items.length>=4 && items.length<=6) cardsHost.classList.add('c4');
+
+  cardsHost.innerHTML = items.map(it => renderPnLCard({
+    title: `${labels[bd]||bd}: ${it==='BS'?'Big Sellers':it}`,
+    productKey: 'ALL',
+    mode: 'breakdown',
+    bdDim: bd, bdValue: it
+  })).join('');
 }
 
 function renderPnLCard(card){
   const pm = prevPeriod(STATE.period);
-  const m = getMetric(STATE.period,STATE.site,STATE.subbu,card.productKey);
-  if(!m){return `<div class="card"><div class="card-h">${card.title}</div><div style="padding:12px;color:#888;font-size:11px">Sin datos</div></div>`}
-  const pmM = pm?getMetric(pm,STATE.site,STATE.subbu,card.productKey):null;
+  // Resolver metric según mode
+  let m, pmM, ytdAgg, ytdAggPlan;
   const yperiods = ytdPeriods(STATE.period);
+  if(card.mode==='breakdown' && card.bdDim){
+    if(card.bdDim==='subbu'){
+      m   = getMetric(STATE.period, STATE.site, card.bdValue, 'ALL');
+      pmM = pm?getMetric(pm, STATE.site, card.bdValue, 'ALL'):null;
+      ytdAgg = aggregateYtd(yperiods, STATE.site, card.bdValue, 'ALL');
+      ytdAggPlan = aggregateYtdPlan(yperiods, STATE.site, card.bdValue, 'ALL');
+    } else if(card.bdDim==='prod'){
+      m   = getMetric(STATE.period, STATE.site, STATE.subbu, card.bdValue);
+      pmM = pm?getMetric(pm, STATE.site, STATE.subbu, card.bdValue):null;
+      ytdAgg = aggregateYtd(yperiods, STATE.site, STATE.subbu, card.bdValue);
+      ytdAggPlan = aggregateYtdPlan(yperiods, STATE.site, STATE.subbu, card.bdValue);
+    } else if(card.bdDim==='site'){
+      m   = getMetric(STATE.period, card.bdValue, STATE.subbu, 'ALL');
+      pmM = pm?getMetric(pm, card.bdValue, STATE.subbu, 'ALL'):null;
+      ytdAgg = aggregateYtd(yperiods, card.bdValue, STATE.subbu, 'ALL');
+      ytdAggPlan = aggregateYtdPlan(yperiods, card.bdValue, STATE.subbu, 'ALL');
+    } else {
+      // dimensional breakdown via DIM_FACTORS
+      m   = getMetricByDim(STATE.period, STATE.site, STATE.subbu, 'ALL', card.bdDim, card.bdValue);
+      pmM = pm?getMetricByDim(pm, STATE.site, STATE.subbu, 'ALL', card.bdDim, card.bdValue):null;
+      // YTD por dim: sum periods con factor aplicado
+      ytdAgg = aggregateYtdDim(yperiods, STATE.site, STATE.subbu, 'ALL', card.bdDim, card.bdValue);
+      ytdAggPlan = aggregateYtdPlanDim(yperiods, STATE.site, STATE.subbu, 'ALL', card.bdDim, card.bdValue);
+    }
+  } else {
+    m   = getMetric(STATE.period,STATE.site,STATE.subbu,card.productKey);
+    pmM = pm?getMetric(pm,STATE.site,STATE.subbu,card.productKey):null;
+    ytdAgg = aggregateYtd(yperiods,STATE.site,STATE.subbu,card.productKey);
+    ytdAggPlan = aggregateYtdPlan(yperiods,STATE.site,STATE.subbu,card.productKey);
+  }
+  if(!m){return `<div class="card"><div class="card-h">${card.title}</div><div style="padding:12px;color:#888;font-size:11px">Sin datos</div></div>`}
   // Build current and reference rows
   const curRows = buildPnL('cur',m.ratios,m.tpv_usd);
   const planRows = buildPnL('plan',m.plan_ratios,m.plan_tpv);
   const prevRows = pmM?buildPnL('prev',pmM.ratios,pmM.tpv_usd):null;
-  // YTD aggregation (sum nominales, recompute %s)
-  const ytdAgg = aggregateYtd(yperiods,STATE.site,STATE.subbu,card.productKey);
-  const ytdAggPlan = aggregateYtdPlan(yperiods,STATE.site,STATE.subbu,card.productKey);
   const ytdRows = ytdAgg ? buildPnL('ytd',ytdAgg.ratios,ytdAgg.tpv_usd) : null;
   const ytdRowsPlan = ytdAggPlan ? buildPnL('ytdp',ytdAggPlan.ratios,ytdAggPlan.tpv_usd) : null;
   const yLabel = `Q${Math.ceil(yperiods.length/3)} ENE-${periodLabel(STATE.period).split(' ')[0].toUpperCase()}`;
@@ -940,6 +1016,30 @@ function aggregateYtdPlan(periods,site,subbu,product){
   const ratios={};
   Object.entries(components).forEach(([k,v])=>ratios[k]=v/tpv);
   ratios.vc_pct=vc/tpv;
+  return {tpv_usd:tpv, vc_usd:vc, ratios};
+}
+function aggregateYtdDim(periods,site,subbu,product,dim,value){
+  let tpv=0, vc=0, components={};
+  periods.forEach(p=>{
+    const m = getMetricByDim(p,site,subbu,product,dim,value);
+    if(!m)return;
+    tpv+=m.tpv_usd; vc+=m.vc_usd;
+    Object.entries(m.ratios||{}).forEach(([k,v])=>{components[k]=(components[k]||0)+m.tpv_usd*v});
+  });
+  if(!tpv)return null;
+  const ratios={}; Object.entries(components).forEach(([k,v])=>ratios[k]=v/tpv); ratios.vc_pct=vc/tpv;
+  return {tpv_usd:tpv, vc_usd:vc, ratios};
+}
+function aggregateYtdPlanDim(periods,site,subbu,product,dim,value){
+  let tpv=0, vc=0, components={};
+  periods.forEach(p=>{
+    const m = getMetricByDim(p,site,subbu,product,dim,value);
+    if(!m)return;
+    tpv+=m.plan_tpv; vc+=m.plan_vc;
+    Object.entries(m.plan_ratios||{}).forEach(([k,v])=>{components[k]=(components[k]||0)+m.plan_tpv*v});
+  });
+  if(!tpv)return null;
+  const ratios={}; Object.entries(components).forEach(([k,v])=>ratios[k]=v/tpv); ratios.vc_pct=vc/tpv;
   return {tpv_usd:tpv, vc_usd:vc, ratios};
 }
 
