@@ -32,7 +32,7 @@ import os, sys, re
 from pathlib import Path
 
 REPO_ROOT     = Path(__file__).resolve().parents[3]
-HTML_DEFAULT  = REPO_ROOT / "analytics" / "op_pnl" / "grid" / "op_pnl_dashboard_v12.html"
+HTML_DEFAULT  = REPO_ROOT / "analytics" / "op_pnl" / "grid" / "op_pnl_dashboard_v13.html"
 EXPECTED_PERIOD = os.getenv("EXPECTED_PERIOD", "2026-04")  # configurable
 MIN_BYTES = 80_000
 MAX_BYTES = 500_000
@@ -162,6 +162,18 @@ def check_catalogs(html: str):
         failed("op_product_real", f"faltan valores OP_PRODUCT post-CASE: {missing_op}")
     else:
         passed("op_product_real", "OP_PRODUCT real (post-CASE) presente")
+
+    # INDUSTRIA real (verticales del mapeo CUS_INDUSTRY_ID_ORIGINAL)
+    industry_real = ['Apps y Plataformas Digitales','Apparel','Retail','Turismo','Gambling','Oil &amp; Gas']
+    missing_ind = [v for v in industry_real if v not in html]
+    if missing_ind:
+        failed("industry_real", f"faltan industrias reales: {missing_ind}")
+    else:
+        passed("industry_real", "INDUSTRIA real (verticales del mapeo) presente")
+    if 'af-industry' not in html:
+        failed("industry_filter", "filtro INDUSTRIA (af-industry) no presente en row 2")
+    else:
+        passed("industry_filter", "filtro INDUSTRIA wired")
 
     # Responsive: media queries presentes
     if '@media' in html and 'max-width:1280px' in html:
