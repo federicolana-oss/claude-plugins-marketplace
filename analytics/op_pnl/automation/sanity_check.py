@@ -32,7 +32,7 @@ import os, sys, re
 from pathlib import Path
 
 REPO_ROOT     = Path(__file__).resolve().parents[3]
-HTML_DEFAULT  = REPO_ROOT / "analytics" / "op_pnl" / "grid" / "op_pnl_dashboard_v11.html"
+HTML_DEFAULT  = REPO_ROOT / "analytics" / "op_pnl" / "grid" / "op_pnl_dashboard_v12.html"
 EXPECTED_PERIOD = os.getenv("EXPECTED_PERIOD", "2026-04")  # configurable
 MIN_BYTES = 80_000
 MAX_BYTES = 500_000
@@ -147,13 +147,27 @@ def check_catalogs(html: str):
     else:
         passed("subsegmento_removed", "SUBSEGMENTO eliminado")
 
-    # Categoria Plan OP must contain Farming/Hunting (not Cards/AM)
-    if 'Big Sellers Farming' not in html or 'Big Sellers Hunting' not in html:
-        failed("categoria_plan_op", "valores Farming/Hunting no encontrados")
-    elif '>Cards<' in html and 'option>Cards' in html:
-        failed("categoria_plan_op", "todavía está 'Cards' en CATEGORIA_PLAN_OP (debería ser Farming/Hunting)")
+    # Categoria Plan OP: valores reales del modelo (BS Farming LC, Hunting Midtail, etc.)
+    if 'BS Farming LC' not in html or 'BS Hunting Midtail' not in html:
+        failed("categoria_plan_op", "valores reales BQ no encontrados (BS Farming LC / BS Hunting Midtail)")
+    elif 'option>Cards<' in html or 'option>Crypto<' in html:
+        failed("categoria_plan_op", "todavía hay valores genéricos (Cards/Crypto)")
     else:
-        passed("categoria_plan_op", "Farming/Hunting/etc")
+        passed("categoria_plan_op", "valores reales BQ presentes")
+
+    # OP_PRODUCT post-CASE: valores reales (BS_Farming, SMB_CHECKOUT, LT_LINK, etc.)
+    op_prod_real = ['BS_Farming','BS_Hunting','SMB_CHECKOUT','LT_LINK','LT_CHECKOUT']
+    missing_op = [v for v in op_prod_real if v not in html]
+    if missing_op:
+        failed("op_product_real", f"faltan valores OP_PRODUCT post-CASE: {missing_op}")
+    else:
+        passed("op_product_real", "OP_PRODUCT real (post-CASE) presente")
+
+    # Responsive: media queries presentes
+    if '@media' in html and 'max-width:1280px' in html:
+        passed("responsive", "media queries presentes")
+    else:
+        failed("responsive", "no se encontraron media queries de responsive")
 
     # Logo MP
     if 'logo-mp' in html and 'mercado' in html.lower():
