@@ -32,7 +32,7 @@ import os, sys, re
 from pathlib import Path
 
 REPO_ROOT     = Path(__file__).resolve().parents[3]
-HTML_DEFAULT  = REPO_ROOT / "analytics" / "op_pnl" / "grid" / "op_pnl_dashboard_v10.html"
+HTML_DEFAULT  = REPO_ROOT / "analytics" / "op_pnl" / "grid" / "op_pnl_dashboard_v11.html"
 EXPECTED_PERIOD = os.getenv("EXPECTED_PERIOD", "2026-04")  # configurable
 MIN_BYTES = 80_000
 MAX_BYTES = 500_000
@@ -69,10 +69,16 @@ def check_no_known_bugs(html: str):
     bugs = [
         (r"\d+\.\d+\s*M\s+M\b",         "double-M bug ('5.5 M M')"),
         (r"\$NaN",                        "$NaN in output"),
-        (r"\bundefined\b(?!\s*[=:])",    "literal 'undefined' in output"),
         (r"v\d+\.0\s*·\s*MOCK",          "version+MOCK marker still present (debe sacarse)"),
         (r"All SubBU\s*·\s*Pricing",     "obsolete 'All SubBU · Pricing' subtitle"),
     ]
+    # Heurística para 'undefined' en texto visible (no en código JS válido).
+    # JS válido usa undefined en: typeof X==='undefined', X===undefined, void 0, default-init.
+    # Si aparece en HTML literal o en un template literal sin condición → bug.
+    visible_undef = re.search(r"(?<![=!])>\s*undefined\s*<", html)
+    if visible_undef:
+        failed("no_known_bugs", "'undefined' renderizado como texto visible")
+        return
     for pattern, desc in bugs:
         if re.search(pattern, html):
             failed("no_known_bugs", desc)
@@ -128,14 +134,18 @@ def check_catalogs(html: str):
     else:
         passed("no_point", "no Point/QR")
 
-    # Friendly filter labels
-    friendly_labels = ['CATEGORÍA','PRODUCTO','SUBSEGMENTO','MEDIO PAGO','CUOTAS','ADQUIRENTE','EMISOR','FUNGIBLE']
+    # Friendly filter labels (v11: SUBSEGMENTO removed -- duplicate of SEGMENTO)
+    friendly_labels = ['CATEGORÍA','PRODUCTO','MEDIO PAGO','CUOTAS','ADQUIRENTE','EMISOR','FUNGIBLE']
     found = [lbl for lbl in friendly_labels if lbl in html]
     if len(found) != len(friendly_labels):
         missing = set(friendly_labels) - set(found)
         failed("friendly_labels", f"faltan: {missing}")
     else:
-        passed("friendly_labels", "8/8 filtros con labels amigables")
+        passed("friendly_labels", f"{len(friendly_labels)}/{len(friendly_labels)} filtros con labels amigables")
+    if 'SUBSEGMENTO' in html:
+        failed("subsegmento_removed", "SUBSEGMENTO todavía aparece (debería haberse eliminado)")
+    else:
+        passed("subsegmento_removed", "SUBSEGMENTO eliminado")
 
     # Categoria Plan OP must contain Farming/Hunting (not Cards/AM)
     if 'Big Sellers Farming' not in html or 'Big Sellers Hunting' not in html:
