@@ -32,7 +32,7 @@ import os, sys, re
 from pathlib import Path
 
 REPO_ROOT     = Path(__file__).resolve().parents[3]
-HTML_DEFAULT  = REPO_ROOT / "analytics" / "op_pnl" / "grid" / "op_pnl_dashboard_v13.html"
+HTML_DEFAULT  = REPO_ROOT / "analytics" / "op_pnl" / "grid" / "op_pnl_dashboard_v14.html"
 EXPECTED_PERIOD = os.getenv("EXPECTED_PERIOD", "2026-04")  # configurable
 MIN_BYTES = 80_000
 MAX_BYTES = 500_000
@@ -174,6 +174,22 @@ def check_catalogs(html: str):
         failed("industry_filter", "filtro INDUSTRIA (af-industry) no presente en row 2")
     else:
         passed("industry_filter", "filtro INDUSTRIA wired")
+
+    # Header subtitle: Business Controlling FP&A (was: Pricing & Profitability)
+    if 'Business Controlling FP&amp;A' not in html and 'Business Controlling FP&A' not in html:
+        failed("fpa_subtitle", "subtitle 'Business Controlling FP&A' no encontrado")
+    elif 'Pricing &amp; Profitability' in html or 'Pricing & Profitability' in html:
+        failed("fpa_subtitle", "todavía aparece 'Pricing & Profitability' en algún lado")
+    else:
+        passed("fpa_subtitle", "subtitle correcto · FP&A")
+
+    # BS Movement section present
+    bsm_keywords = ['bsm-stay-n','bsm-new-n','bsm-exit-n','bsm-spread-v','renderBSMovement','QUALITY SPREAD']
+    missing = [k for k in bsm_keywords if k not in html]
+    if missing:
+        failed("bs_movement", f"sección BS Movement incompleta: faltan {missing}")
+    else:
+        passed("bs_movement", "Top 100 BS Movement (STAY/NEW/EXIT + Quality Spread)")
 
     # Responsive: media queries presentes
     if '@media' in html and 'max-width:1280px' in html:
