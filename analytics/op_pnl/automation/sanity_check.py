@@ -32,7 +32,7 @@ import os, sys, re
 from pathlib import Path
 
 REPO_ROOT     = Path(__file__).resolve().parents[3]
-HTML_DEFAULT  = REPO_ROOT / "analytics" / "op_pnl" / "grid" / "op_pnl_dashboard_v17.html"
+HTML_DEFAULT  = REPO_ROOT / "analytics" / "op_pnl" / "grid" / "op_pnl_dashboard_v18.html"
 EXPECTED_PERIOD = os.getenv("EXPECTED_PERIOD", "2026-04")  # configurable
 MIN_BYTES = 80_000
 MAX_BYTES = 500_000
@@ -87,12 +87,12 @@ def check_no_known_bugs(html: str):
 
 
 def check_default_period(html: str):
-    # busca opción seleccionada con value == EXPECTED_PERIOD
-    m = re.search(rf'<option[^>]*value="{re.escape(EXPECTED_PERIOD)}"[^>]*selected', html)
-    if m:
+    # v18+: STATE.periods array initialised with default
+    if re.search(rf"periods:\['{re.escape(EXPECTED_PERIOD)}'\]", html) or \
+       re.search(rf"period:'{re.escape(EXPECTED_PERIOD)}'", html):
         passed("default_period", EXPECTED_PERIOD)
     else:
-        failed("default_period", f"esperado <option value='{EXPECTED_PERIOD}' selected> no encontrado")
+        failed("default_period", f"STATE no inicializa con period {EXPECTED_PERIOD}")
 
 
 def check_tabs(html: str):
