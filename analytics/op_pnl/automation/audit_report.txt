@@ -1,0 +1,72 @@
+
+====================================================================
+AUDITORÍA DE DATOS · OP P&L Dashboard
+====================================================================
+
+Archivo: op_pnl_dashboard_v20.html
+Tamaño:  308,508 bytes
+
+
+====================================================================
+PLAN 2026 (CSV de Finanzas Acquiring · Aj FTP)
+====================================================================
+  ✅ Plan TPV / VC mensual            REAL     embebido como JSON · 420 buckets · 12 meses · 7 sites
+
+====================================================================
+REAL · Métricas del mes (TPV, VC, ratios componentes)
+====================================================================
+  ❌ TPV mensual por site             MOCK     generado con mulberry32 + factores hardcoded SITE_W
+  ❌ VC mensual por site              MOCK     vc_pct = baseVcPct + siteAdj + noise
+  ❌ Ratios componentes (Processing, Fin Net, etc.) MOCK     buildRatios() con valores fijos + ruido
+
+====================================================================
+FX / INFLACIÓN
+====================================================================
+  ❌ FX / Inflación                   MOCK     factores hardcoded sin documentar
+
+====================================================================
+CÁLCULOS YoY
+====================================================================
+  ⚠️ TPV YoY % MLA                    PARTIAL  fórmula correcta (USD CC Deflated) · datos input mock
+  ⚠️ TPV YoY % otros                  PARTIAL  fórmula correcta (LC nativa proxy) · datos input mock
+
+====================================================================
+INDUSTRIAS (Heatmap BS)
+====================================================================
+  ❌ Share por industria              MOCK     hardcoded; SQL listo en sql/08_industrias.sql para WHOWNER.DM_SNAP_ACQUIRING_SELLERS
+  ❌ VC% por industria                MOCK     vcByIndustry() factor hardcoded
+
+====================================================================
+BIG SELLERS · Top 100 Movement (STAY/NEW/EXIT)
+====================================================================
+  ❌ STAY / NEW / EXIT counts         MOCK     función bsmMockSite genera datos · SQL listo en sql/09_farming_hunting.sql
+  ❌ Quality Spread (VC% NEW − VC% EXIT) MOCK     calculated sobre data mock
+
+====================================================================
+FILTROS / DIMENSIONES (estructura)
+====================================================================
+  ✅ OP_PRODUCT post-CASE             REAL     valores y mapping de la query del repo big-sellers-hub
+  ✅ CATEGORIA_PLAN_OP                REAL     valores reales de la tabla
+  ✅ Industrias (taxonomía)           REAL     INDUSTRY_GROUP × VERTICAL del CASE oficial
+  ✅ Sites · Segmentos                REAL     catálogos completos
+  ⚠️ Adquirentes · Emisores           PARTIAL  lista LATAM razonable; necesita DISTINCT real para confirmar
+
+====================================================================
+RESUMEN
+====================================================================
+
+  REAL = mapeos / catálogos / Plan v3 (CSV)
+  PARTIAL = lógica correcta, datos input mock
+  MOCK = totalmente generado por seeds JS — necesita pipeline BQ
+
+  Para tener números 100% reales necesito:
+    1. Output del SQL sql/05_grid_export_json.sql contra
+       SBOX_FINANCEMP.BT_MP_ACQUIRING_CROSS_V3  →  reemplaza mock TPV/VC
+    2. Output de sql/10_macro_premises_join.sql contra
+       WHOWNER.BT_FIN_MACRO_PREMISES  →  reemplaza FX/Inflation hardcoded
+    3. Output de sql/08_industrias.sql contra
+       WHOWNER.DM_SNAP_ACQUIRING_SELLERS  →  reemplaza shares industria
+    4. Output de sql/09_farming_hunting.sql  →  reemplaza BS Movement mock
+
+  Alternativa: subir HTML de un Grid existente con números reales
+  (como hiciste con Acquiring KPI Evolution) y los extraigo / cross-checkeo.
