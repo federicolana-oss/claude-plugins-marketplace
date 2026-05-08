@@ -32,7 +32,7 @@ import os, sys, re
 from pathlib import Path
 
 REPO_ROOT     = Path(__file__).resolve().parents[3]
-HTML_DEFAULT  = REPO_ROOT / "analytics" / "op_pnl" / "grid" / "op_pnl_dashboard_v18.html"
+HTML_DEFAULT  = REPO_ROOT / "analytics" / "op_pnl" / "grid" / "op_pnl_dashboard_v19.html"
 EXPECTED_PERIOD = os.getenv("EXPECTED_PERIOD", "2026-04")  # configurable
 MIN_BYTES = 80_000
 MAX_BYTES = 500_000
@@ -96,13 +96,11 @@ def check_default_period(html: str):
 
 
 def check_tabs(html: str):
-    expected = ["portada", "multi", "trend"]
-    present = re.findall(r'data-tab="([^"]+)"', html)
-    missing = [t for t in expected if t not in present]
-    if missing:
-        failed("tabs_present", f"faltan tabs: {missing}")
+    # v19+: single-page layout, no tabs nav. Check that pane-portada exists.
+    if 'id="pane-portada"' in html:
+        passed("layout", "single-page layout · pane-portada presente")
     else:
-        passed("tabs_present", f"{len(present)} tabs ({', '.join(present)})")
+        failed("layout", "pane-portada no encontrado")
 
 
 def check_catalogs(html: str):
@@ -187,15 +185,28 @@ def check_catalogs(html: str):
     else:
         passed("subtitle", "subtitle correcto · Finance Regional")
 
-    # PLAN_2026 V3 cargado
+    # PLAN_2026 V3 cargado · v19 con USD raw
     if 'const PLAN_2026' in html and 'function getPlan' in html:
-        # Check it's not empty
-        if '"2026-04"' in html and '"MLA"' in html:
-            passed("plan_2026_v3", "PLAN_2026 V3 embebido + getPlan helper presente")
+        if '"2026-04"' in html and '"MLA"' in html and '"tpv_usd"' in html:
+            passed("plan_2026_v3", "PLAN_2026 V3 embebido (USD raw + USD CC + LC) + getPlan helper")
         else:
-            failed("plan_2026_v3", "PLAN_2026 const presente pero parece vacio")
+            failed("plan_2026_v3", "PLAN_2026 const presente pero falta tpv_usd raw")
     else:
         failed("plan_2026_v3", "PLAN_2026 V3 no encontrado")
+    # P&L Maestro · v19 sección central
+    if 'pnlm-table' in html and 'renderPnLMaestro' in html:
+        passed("pnl_maestro", "P&L Maestro central section presente")
+    else:
+        failed("pnl_maestro", "P&L Maestro no encontrado")
+    # No tabs nav
+    if '<div class="tabs"' in html and 'data-tab' in html:
+        # Check it's display:none or marked as legacy
+        if '.tabs{display:none}' not in html:
+            failed("single_page", "tabs nav todavía visible (debería ser display:none)")
+        else:
+            passed("single_page", "tabs nav oculta (single-page layout)")
+    else:
+        passed("single_page", "tabs nav eliminado · single-page layout")
 
     # BS Movement section present
     bsm_keywords = ['bsm-stay-n','bsm-new-n','bsm-exit-n','bsm-spread-v','renderBSMovement','QUALITY SPREAD']
