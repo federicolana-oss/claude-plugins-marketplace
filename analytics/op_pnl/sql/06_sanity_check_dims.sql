@@ -55,21 +55,28 @@ GROUP BY 1,2
 ORDER BY tpv_M_USD DESC;
 
 -- =============================================================================
--- 4) FX y inflación (para validar la conversión USD CC Deflated de MLA)
+-- 4) FX y inflación desde WHOWNER.BT_FIN_MACRO_PREMISES (fuente oficial)
 -- =============================================================================
+-- Usar esta tabla en lugar de derivar FX desde la cross.
 SELECT
   SIT_SITE_ID,
   PERIODO,
-  AVG(FX) AS fx_avg,
-  COUNT(*) AS row_count
-FROM `${PROJECT}.${SBOX_DATASET}.BT_MP_ACQUIRING_CROSS_V3`
-WHERE SIT_SITE_ID = 'MLA'
-  AND PERIODO BETWEEN DATE '2025-01-01' AND DATE '2026-04-30'
-GROUP BY 1,2
-ORDER BY PERIODO;
+  FX,
+  FX_PLAN,            -- confirmar nombre exacto de la columna
+  INFLATION_RATE_YOY  -- confirmar nombre exacto de la columna
+FROM `meli-bi-data.WHOWNER.BT_FIN_MACRO_PREMISES`
+WHERE PERIODO BETWEEN DATE '2025-01-01' AND DATE '2026-12-31'
+  AND SIT_SITE_ID IN ('MLA','MLB','MLM','MLC','MCO','MPE','MLU')
+ORDER BY SIT_SITE_ID, PERIODO;
 
--- Comparar:
---   USD     = LC / FX_actual
---   USD CC  = LC / FX_LY (mismo mes año pasado)
---   Deflated MLA = USD CC / (1 + inflation_AR_yoY)
--- Pegame el output y te confirmo si la fórmula del dashboard corresponde.
+-- Recordatorio de fórmulas (glosario validado por el equipo):
+--   Local Currency (LC)    = valor crudo
+--   USD                    = LC / TC_actual
+--   USD CC                 = LC / TC_LY (mismo mes año pasado)
+--   Deflated MLA           = USD CC / (1 + inflation_AR_YoY)
+--   Deflated otros sites   = USD CC
+-- Para vs LY:
+--   ALL/Argentina:         Real (N) Deflated / Real (N-1) USD - 1
+--   Sites excl AR:         Real LC / Real (N-1) LC - 1
+-- Para vs Plan:
+--   Real Deflated / Plan Deflated - 1

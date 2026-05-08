@@ -32,7 +32,7 @@ import os, sys, re
 from pathlib import Path
 
 REPO_ROOT     = Path(__file__).resolve().parents[3]
-HTML_DEFAULT  = REPO_ROOT / "analytics" / "op_pnl" / "grid" / "op_pnl_dashboard_v16.html"
+HTML_DEFAULT  = REPO_ROOT / "analytics" / "op_pnl" / "grid" / "op_pnl_dashboard_v17.html"
 EXPECTED_PERIOD = os.getenv("EXPECTED_PERIOD", "2026-04")  # configurable
 MIN_BYTES = 80_000
 MAX_BYTES = 500_000
@@ -186,6 +186,16 @@ def check_catalogs(html: str):
         passed("subtitle", "Finance Regional present (Business Controlling ok if in JS only)")
     else:
         passed("subtitle", "subtitle correcto · Finance Regional")
+
+    # PLAN_2026 V3 cargado
+    if 'const PLAN_2026' in html and 'function getPlan' in html:
+        # Check it's not empty
+        if '"2026-04"' in html and '"MLA"' in html:
+            passed("plan_2026_v3", "PLAN_2026 V3 embebido + getPlan helper presente")
+        else:
+            failed("plan_2026_v3", "PLAN_2026 const presente pero parece vacio")
+    else:
+        failed("plan_2026_v3", "PLAN_2026 V3 no encontrado")
 
     # BS Movement section present
     bsm_keywords = ['bsm-stay-n','bsm-new-n','bsm-exit-n','bsm-spread-v','renderBSMovement','QUALITY SPREAD']
